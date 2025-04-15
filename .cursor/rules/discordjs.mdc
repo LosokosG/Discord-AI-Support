@@ -1,0 +1,231 @@
+---
+description: 
+globs: src\discord-bot\**
+alwaysApply: false
+---
+## DiscordJS Bot Development Guidelines
+
+This guide focuses on organizing your DiscordJS bot code effectively. Follow these instructions to create a modular, efficient, and scalable bot.
+
+---
+
+### Project Structure
+
+Organize your project with the following folder structure:
+
+```
+discord-bot/
+├── commands/           # Slash command files (e.g., ping.js)
+├── events/             # Event listener files (e.g., ready.js, messageCreate.js)
+├── bot.js              # Main bot file with client initialization and dynamic loading
+├── index.js            # Sharding manager (optional, for large-scale bots)
+├── package.json        # Project dependencies
+└── discordjs-bot-guidelines.mdc  # This documentation
+```
+
+- **Why this structure?**  
+  Separating commands and events into their own folders keeps your code modular and easy to maintain. The `bot.js` file serves as the core, while `index.js` handles sharding if needed.
+
+---
+
+### Client Initialization
+
+In `bot.js`, initialize the Discord client with the necessary intents. Here’s an example:
+
+```javascript
+const { Client, GatewayIntentBits } = require('discord.js');
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,        // Access to guild data
+    GatewayIntentBits.GuildMessages, // Access to message events
+  ],
+});
+
+// Load events and commands (see below)
+require('./events/loader')(client); // Event loader
+require('./commands/loader')(client); // Command loader
+
+// Login is handled by ShardingManager in index.js if sharding; otherwise, uncomment below:
+// client.login('YOUR_BOT_TOKEN');
+```
+
+- **Instructions**:  
+  - Save this as `bot.js` in the root directory.  
+  - Adjust intents based on your bot’s needs (e.g., add `GuildMembers` if you need member data).  
+  - Do not include `client.login()` if using sharding (see Sharding section).
+
+---
+
+### Event Handling
+
+Place event listeners in the `events/` folder as separate files. This keeps your code organized and prevents `bot.js` from becoming cluttered.
+
+#### Example: `events/ready.js`
+```javascript
+module.exports = {
+  name: 'ready',
+  once: true, // Runs only once when the bot starts
+  execute(client) {
+    console.log(`Logged in as ${client.user.tag}`);
+  },
+};
+```
+
+#### Event Loader in `bot.js`
+Create a separate file, `events/loader.js`, to dynamically load events:
+
+```javascript
+const fs = require('fs');
+
+module.exports = (client) => {
+  const eventFiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
+
+  for (const file of eventFiles) {
+    const event = require(`../events/${file}`);
+    if (event.once) {
+      client.once(event.name, (...args) => event.execute(...args));
+    } else {
+      client.on(event.name, (...args) => event.execute(...args));
+    }
+  }
+};
+```
+
+- **Instructions**:  
+  - Create an `events/` folder.  
+  - Add event files like `ready.js`, `messageCreate.js`, etc., following the structure above.  
+  - Require the loader in `bot.js` as shown in the Client Initialization section.  
+  - Use `once: true` for one-time events (e.g., `ready`) and `once: false` (or omit) for recurring events (e.g., `messageCreate`).
+
+---
+
+### Command Handling
+
+Use slash commands for a modern bot experience. Store them in the `commands/` folder and load them dynamically.
+
+#### Example: `commands/ping.js`
+```javascript
+const { SlashCommandBuilder } = require('@discordjs/builders');
+
+module.exports = {
+  data: new SlashCommandBuilder()
+    .setName('ping')
+    .setDescription('Replies with Pong!'),
+  async execute(interaction) {
+    await interaction.reply('Pong!');
+  },
+};
+```
+
+#### Command Loader in `bot.js`
+Create `commands/loader.js` to load commands into a `Collection`:
+
+```javascript
+const { Collection } = require('discord.js');
+const fs = require('fs');
+
+module.exports = (client) => {
+  client.commands = new Collection();
+  const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+
+  for (const file of commandFiles) {
+    const command = require(`../commands/${file}`);
+    client.commands.set(command.data.name, command);
+  }
+
+  client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isCommand()) return;
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return;
+
+    try {
+      await command.execute(interaction);
+    } catch (error) {
+      console.error(error);
+      await interaction.reply({ content: 'Error executing command!', ephemeral: true });
+    }
+  });
+};
+```
+
+- **Instructions**:  
+  - Create a `commands/` folder.  
+  - Add command files like `ping.js` using the `SlashCommandBuilder` format.  
+  - Require the loader in `bot.js` as shown earlier.  
+  - Register slash commands with Discord using a separate script or a library like `@discordjs/rest` (not covered here for brevity).
+
+---
+
+### Sharding for Scalability
+
+For bots in many guilds, use sharding to distribute the load. Create `index.js` in the root directory:
+
+```javascript
+const { ShardingManager } = require('discord.js');
+const manager = new ShardingManager('./bot.js', { token: 'YOUR_BOT_TOKEN' });
+
+manager.on('shardCreate', (shard) => console.log(`Launched shard ${shard.id}`));
+manager.spawn();
+```
+
+In `bot.js`, you can access shard data like this:
+
+```javascript
+client.shard.fetchClientValues('guilds.cache.size')
+  .then((results) => {
+    const totalGuilds = results.reduce((acc, guildCount) => acc + guildCount, 0);
+    console.log(`Total guilds: ${totalGuilds}`);
+  })
+  .catch(console.error);
+```
+
+- **Instructions**:  
+  - Create `index.js` if your bot needs sharding (e.g., 1000+ guilds).  
+  - Run `node index.js` instead of `node bot.js` to start the bot with sharding.  
+  - Remove `client.login()` from `bot.js` when using `index.js`.
+
+---
+
+### Error Handling
+
+Add global error handlers in `bot.js` to catch issues:
+
+```javascript
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+```
+
+- **Instructions**:  
+  - Add this code at the bottom of `bot.js`.  
+  - Consider using a logging library like **Winston** for more advanced logging.
+
+---
+
+### Performance Tips
+
+- **Caching**: Limit cached data in the client options (e.g., disable `messageCache` if unused).  
+- **Async Operations**: Use `async/await` for all I/O operations (e.g., database calls, API requests).  
+- **Data Structures**: Use `Collection` or `Map` for fast command/event lookups.
+
+- **Instructions**:  
+  - Review your intents and caching settings in `bot.js`.  
+  - Ensure all file operations (e.g., `fs.readdirSync`) are minimal or replaced with async alternatives where possible.
+
+---
+
+### Final Steps
+
+1. **Install Dependencies**:  
+   Run `npm install discord.js @discordjs/builders` to get started.
+
+2. **Test Your Bot**:  
+   - Without sharding: `node bot.js` (add `client.login('YOUR_BOT_TOKEN')` to `bot.js`).  
+   - With sharding: `node index.js`.
+
+---
+
