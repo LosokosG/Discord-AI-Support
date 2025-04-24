@@ -159,9 +159,9 @@ export interface UpdateServerCommand {
 /** JSON alternative to multipart document upload (POST `/documents`). */
 export interface UploadDocumentCommand {
   title: DocRow["title"];
-  /** Raw text content – omitted when uploading a file via multipart. */
-  content?: DocRow["content"];
-  /** File extension / mime‑type short‑code */
+  /** Raw text content for txt or md documents */
+  content: DocRow["content"];
+  /** File type - currently only 'txt' or 'md' are supported */
   fileType: DocRow["file_type"];
 }
 

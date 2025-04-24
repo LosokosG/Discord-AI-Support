@@ -1,76 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { v4 as uuidv4 } from "uuid";
-import type { KnowledgeDocument, DocumentList } from "../../types";
-import type { Tables } from "../../db/database.types";
+import type { DocumentList, UploadDocumentCommand, UpdateDocumentCommand } from "../../types";
 
-class NotFoundError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "NotFoundError";
-  }
-}
-
-// Type for knowledge document database row
-type DocumentRow = Tables<"knowledge_documents">;
-// Minimal type for document list results
-type DocumentListItem = Pick<DocumentRow, "id" | "title" | "file_type" | "created_at" | "updated_at">;
-
-/**
- * Maps database rows to KnowledgeDocument DTOs
- */
-function mapToKnowledgeDocument(document: DocumentListItem): KnowledgeDocument {
-  return {
-    id: document.id,
-    title: document.title,
-    fileType: document.file_type,
-    createdAt: document.created_at,
-    updatedAt: document.updated_at,
-  };
+interface QueryParams {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  fileType?: string;
 }
 
 /**
- * Maps database rows to KnowledgeDocument DTOs including content
+ * Fetches a list of knowledge documents for a server
  */
-function mapToKnowledgeDocumentWithContent(
-  document: DocumentRow & { downloadUrl?: string }
-): KnowledgeDocument & { content: string; downloadUrl?: string } {
-  return {
-    ...mapToKnowledgeDocument(document),
-    content: document.content,
-    downloadUrl: document.downloadUrl,
-  };
-}
-
-/**
- * Checks if a string is a valid UUID
- */
-function isValidUUID(uuid: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uuid);
-}
-
-export async function listDocuments(
-  {
-    serverId,
-    page = 1,
-    pageSize = 20,
-    q,
-    fileType,
-  }: {
-    serverId: string;
-    page: number;
-    pageSize: number;
-    q?: string;
-    fileType?: string;
-  },
+export async function getDocumentsByServerId(
+  serverId: string,
+  params: QueryParams = {},
   supabaseClient: SupabaseClient
-) {
-  if (!serverId) {
-    throw new Error("Server ID is required");
-  }
-
-  if (pageSize > 100) {
-    pageSize = 100; // Enforce maximum page size
-  }
+): Promise<DocumentList> {
+  const { page = 1, pageSize = 20, q, fileType } = params;
 
   let query = supabaseClient
     .from("knowledge_documents")
@@ -90,19 +36,28 @@ export async function listDocuments(
 
   if (error) throw error;
 
+  // Convert from snake_case to camelCase keys
+  const formattedData =
+    data?.map((doc) => ({
+      id: doc.id,
+      title: doc.title,
+      fileType: doc.file_type,
+      createdAt: doc.created_at,
+      updatedAt: doc.updated_at,
+    })) || [];
+
   return {
-    data: data ? data.map(mapToKnowledgeDocument) : [],
+    data: formattedData,
     page,
     pageSize,
     total: count || 0,
-  } as DocumentList;
+  };
 }
 
+/**
+ * Fetches a single document by ID
+ */
 export async function getDocumentById(serverId: string, docId: string, supabaseClient: SupabaseClient) {
-  if (!serverId || !docId) {
-    throw new Error("Server ID and Document ID are required");
-  }
-
   const { data, error } = await supabaseClient
     .from("knowledge_documents")
     .select("*")
@@ -111,11 +66,11 @@ export async function getDocumentById(serverId: string, docId: string, supabaseC
     .single();
 
   if (error) {
-    if (error.code === "PGRST116") throw new NotFoundError("Document not found");
+    if (error.code === "PGRST116") throw new Error("Document not found");
     throw error;
   }
 
-  // For PDF, include URL for download
+  // For PDF, include download URL
   const documentWithContent = { ...data };
   if (data.storage_path) {
     const { data: signedURL } = await supabaseClient.storage.from("documents").createSignedUrl(data.storage_path, 3600); // 1 hour
@@ -123,94 +78,91 @@ export async function getDocumentById(serverId: string, docId: string, supabaseC
     documentWithContent.downloadUrl = signedURL;
   }
 
-  return mapToKnowledgeDocumentWithContent(documentWithContent);
+  // Convert to camelCase
+  return {
+    id: documentWithContent.id,
+    title: documentWithContent.title,
+    content: documentWithContent.content,
+    fileType: documentWithContent.file_type,
+    downloadUrl: documentWithContent.downloadUrl,
+    createdAt: documentWithContent.created_at,
+    updatedAt: documentWithContent.updated_at,
+  };
 }
 
+/**
+ * Creates a new document
+ */
 export async function createDocument(
   serverId: string,
-  data: {
-    title: string;
-    content?: string;
-    fileType: string;
-    file?: File;
-  },
+  data: UploadDocumentCommand,
   createdBy: string,
   supabaseClient: SupabaseClient
 ) {
-  if (!serverId) {
-    throw new Error("Server ID is required");
-  }
-
-  // For PDF file uploads - handle storage
-  let storagePath = null;
-  if (data.fileType === "pdf" && data.file) {
-    const filePath = `documents/${serverId}/${uuidv4()}.pdf`;
-    const { error: uploadError } = await supabaseClient.storage.from("documents").upload(filePath, data.file);
-
-    if (uploadError) throw uploadError;
-    storagePath = filePath;
-  }
-
-  // Check if createdBy is a valid UUID, if not (like for mock test users), generate one
-  const userIdForDb = isValidUUID(createdBy) ? createdBy : uuidv4();
-
+  // We only support plain text or markdown now, no file storage needed
   const { data: document, error } = await supabaseClient
     .from("knowledge_documents")
     .insert({
       server_id: serverId,
       title: data.title,
-      content: data.content,
+      content: data.content || "",
       file_type: data.fileType,
-      storage_path: storagePath,
-      created_by: userIdForDb,
+      storage_path: null, // No storage path since we're not handling files
+      created_by: createdBy,
     })
     .select()
     .single();
 
   if (error) throw error;
 
-  return mapToKnowledgeDocument(document);
+  return {
+    id: document.id,
+    title: document.title,
+    fileType: document.file_type,
+    createdAt: document.created_at,
+    updatedAt: document.updated_at,
+  };
 }
 
+/**
+ * Updates an existing document
+ */
 export async function updateDocument(
   serverId: string,
   docId: string,
-  data: {
-    title?: string;
-    content?: string;
-  },
+  data: UpdateDocumentCommand,
   supabaseClient: SupabaseClient
 ) {
-  if (!serverId || !docId) {
-    throw new Error("Server ID and Document ID are required");
-  }
-
-  const updateData: Partial<Pick<DocumentRow, "title" | "content">> = {};
-  if (data.title !== undefined) updateData.title = data.title;
-  if (data.content !== undefined) updateData.content = data.content;
-
   const { data: document, error } = await supabaseClient
     .from("knowledge_documents")
-    .update(updateData)
+    .update({
+      title: data.title,
+      content: data.content,
+    })
     .eq("server_id", serverId)
     .eq("id", docId)
     .select()
     .single();
 
   if (error) {
-    if (error.code === "PGRST116") throw new NotFoundError("Document not found");
+    if (error.code === "PGRST116") throw new Error("Document not found");
     throw error;
   }
 
-  return mapToKnowledgeDocument(document);
+  return {
+    id: document.id,
+    title: document.title,
+    fileType: document.file_type,
+    createdAt: document.created_at,
+    updatedAt: document.updated_at,
+  };
 }
 
+/**
+ * Deletes a document
+ */
 export async function deleteDocument(serverId: string, docId: string, supabaseClient: SupabaseClient) {
-  if (!serverId || !docId) {
-    throw new Error("Server ID and Document ID are required");
-  }
-
-  // Get document info first
+  // Get document info to check for storage path
   const { data: document, error: fetchError } = await supabaseClient
     .from("knowledge_documents")
     .select("storage_path")
@@ -219,26 +171,25 @@ export async function deleteDocument(serverId: string, docId: string, supabaseCl
     .single();
 
   if (fetchError) {
-    if (fetchError.code === "PGRST116") throw new NotFoundError("Document not found");
+    if (fetchError.code === "PGRST116") throw new Error("Document not found");
     throw fetchError;
   }
 
-  // Remove file from storage if exists
+  // Delete file from storage if exists
   if (document.storage_path) {
     await supabaseClient.storage.from("documents").remove([document.storage_path]);
   }
 
-  // Delete record
+  // Delete the record
   const { error } = await supabaseClient.from("knowledge_documents").delete().eq("server_id", serverId).eq("id", docId);
 
   if (error) throw error;
 }
 
+/**
+ * Triggers reindexing of a document
+ */
 export async function reindexDocument(serverId: string, docId: string, supabaseClient: SupabaseClient) {
-  if (!serverId || !docId) {
-    throw new Error("Server ID and Document ID are required");
-  }
-
   // Check if document exists
   const { error } = await supabaseClient
     .from("knowledge_documents")
@@ -248,11 +199,11 @@ export async function reindexDocument(serverId: string, docId: string, supabaseC
     .single();
 
   if (error) {
-    if (error.code === "PGRST116") throw new NotFoundError("Document not found");
+    if (error.code === "PGRST116") throw new Error("Document not found");
     throw error;
   }
 
-  // Call NOTIFY function in PostgreSQL to trigger reindexing
+  // Call reindex function
   await supabaseClient.rpc("notify_document_reindex", {
     doc_id: docId,
     server_id: serverId,

@@ -1,5 +1,5 @@
 import type { APIContext } from "astro";
-import { listDocuments, createDocument } from "../../../../../lib/services/documents";
+import { getDocumentsByServerId, createDocument } from "../../../../../lib/services/documents";
 import { DocumentQuerySchema, ServerIdSchema, UploadDocumentSchema } from "../../../../../lib/schemas/document-schemas";
 import type { ErrorResponse } from "../../../../../types";
 import { parseMultipartFormData } from "../../../../../lib/utils/parse-form-data";
@@ -50,10 +50,10 @@ export async function GET({ params, request, locals }: APIContext): Promise<Resp
     // Parse and validate query parameters
     const url = new URL(request.url);
     const queryParams = {
-      page: url.searchParams.get("page"),
-      pageSize: url.searchParams.get("pageSize"),
-      q: url.searchParams.get("q"),
-      fileType: url.searchParams.get("fileType"),
+      page: url.searchParams.get("page") || undefined,
+      pageSize: url.searchParams.get("pageSize") || undefined,
+      q: url.searchParams.get("q") || undefined,
+      fileType: url.searchParams.get("fileType") || undefined,
     };
 
     const queryResult = DocumentQuerySchema.safeParse(queryParams);
@@ -94,10 +94,13 @@ export async function GET({ params, request, locals }: APIContext): Promise<Resp
     }
 
     // Call the service function to list documents
-    const result = await listDocuments(
+    const result = await getDocumentsByServerId(
+      pathResult.data.id,
       {
-        serverId: pathResult.data.id,
-        ...queryResult.data,
+        page: queryResult.data.page,
+        pageSize: queryResult.data.pageSize,
+        q: queryResult.data.q === null ? undefined : queryResult.data.q,
+        fileType: queryResult.data.fileType === null ? undefined : queryResult.data.fileType,
       },
       supabase
     );

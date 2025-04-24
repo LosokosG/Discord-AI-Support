@@ -1,0 +1,42 @@
+---
+import Layout from "../../../../layouts/Layout.astro";
+import { DocumentView } from "../../../../components/knowledge/DocumentView";
+import { getDocumentById } from "@/lib/services/documents";
+import type { KnowledgeDocumentWithContent } from "@/types/knowledge";
+
+// Get the server ID and document ID from the URL
+const { id, docId } = Astro.params;
+
+// We'll handle not having IDs in the React component
+if (!id || !docId) {
+  return Astro.redirect("/servers");
+}
+
+// Check for query parameters
+const reindexed = Astro.url.searchParams.get("reindexed") === "true";
+const reindexError = Astro.url.searchParams.get("error") === "reindex";
+
+// Get document details
+let document: KnowledgeDocumentWithContent | null = null;
+
+try {
+  const supabase = Astro.locals.supabase;
+  document = (await getDocumentById(id, docId, supabase)) as KnowledgeDocumentWithContent;
+} catch (err) {
+  console.error("Error fetching document:", err);
+  // We'll let the client-side component handle the error
+}
+---
+
+<Layout title={document ? document.title : "Document"}>
+  <div class="container mx-auto py-6">
+    <DocumentView
+      client:load
+      serverId={id}
+      documentId={docId}
+      initialDocument={document}
+      reindexed={reindexed}
+      reindexError={reindexError}
+    />
+  </div>
+</Layout>
