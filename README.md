@@ -161,4 +161,218 @@ This project is currently not licensed under any specific license. All rights re
 
 ---
 
-*Note: This README is a living document and will be updated as the project evolves.* 
+*Note: This README is a living document and will be updated as the project evolves.*
+
+# OpenRouter Service for Discord Bot
+
+This service provides a clean TypeScript interface for communicating with the OpenRouter API, allowing your Discord bot to interact with various large language models (LLMs).
+
+## Features
+
+- Access to 30+ AI models through a single interface, including:
+  - OpenAI: GPT-4, GPT-4o, GPT-4.1, GPT-3.5 Turbo
+  - Anthropic: Claude 3 Opus, Claude 3.7 Sonnet, Claude 3 Haiku
+  - Google: Gemini (free), Gemini 1.5 Pro, Gemini 1.5 Flash
+  - Meta: Llama 3 (8B, 70B, 405B variants)
+  - Mistral: 7B, Small, Medium, Large models
+  - Qwen: 14B, 72B, 235B models
+- Type-safe API with TypeScript interfaces
+- Comprehensive error handling with specific error types
+- Automatic retry logic with exponential backoff
+- Accurate cost estimation based on current API pricing
+- Compatible with Discord.js
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v14 or higher)
+- TypeScript (v4.5 or higher)
+- Discord.js (v14 or higher)
+- An OpenRouter API key (from https://openrouter.ai/)
+
+### Installation
+
+The OpenRouter service is included with your project. It's located in `src/lib/openrouter`.
+
+### Basic Usage
+
+```typescript
+import { OpenRouterService, OpenRouterModel } from '../lib/openrouter';
+
+// Create an instance of the service
+const openRouter = new OpenRouterService(
+  process.env.OPENROUTER_API_KEY || '',
+  OpenRouterModel.GPT35Turbo 
+);
+
+// Example function to call the AI
+async function askAI(question: string) {
+  try {
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are a helpful assistant.'
+      },
+      {
+        role: 'user',
+        content: question
+      }
+    ];
+    
+    const completion = await openRouter.chatCompletion(messages);
+    return completion.choices[0].message.content;
+  } catch (error) {
+    console.error('Error calling OpenRouter:', error);
+    throw error;
+  }
+}
+```
+
+### Advanced Usage
+
+You can specify different models and parameters:
+
+```typescript
+const response = await openRouter.chatCompletion(messages, {
+  model: OpenRouterModel.GPT4o,  // Use GPT-4o for better capabilities
+  params: {
+    temperature: 0.8,
+    max_tokens: 500,
+    top_p: 0.95
+  }
+});
+```
+
+You can also use structured output with JSON schema:
+
+```typescript
+const response = await openRouter.chatCompletion(messages, {
+  responseFormat: {
+    type: 'json_schema',
+    json_schema: {
+      name: 'user_info',
+      strict: true,
+      schema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          age: { type: 'number' }
+        },
+        required: ['name']
+      }
+    }
+  }
+});
+```
+
+### Cost Management
+
+The service includes an accurate cost estimation method:
+
+```typescript
+// Get token usage from completion
+const { prompt_tokens, completion_tokens } = completion.usage;
+
+// Estimate cost in USD
+const cost = openRouter.estimateCost(
+  prompt_tokens, 
+  completion_tokens,
+  OpenRouterModel.Claude37Sonnet
+);
+
+console.log(`Estimated cost: $${cost.toFixed(6)}`);
+```
+
+## Model Selection Guide
+
+### Budget-friendly options:
+- **Gemini**: Free tier, good for basic tasks
+- **Mistral 7B**: $0.14/M input, $0.42/M output tokens
+- **Llama 3 (8B)**: $0.14/M input, $0.42/M output tokens
+- **GPT-3.5 Turbo**: $0.50/M input, $1.50/M output tokens
+
+### Balanced performance/cost:
+- **Claude 3 Haiku**: $0.25/M input, $1.25/M output tokens
+- **GPT-4o Mini**: $1.50/M input, $5.00/M output tokens
+- **Mistral Medium**: $2.70/M input, $8.10/M output tokens
+
+### High performance:
+- **Claude 3.7 Sonnet**: $3.00/M input, $15.00/M output tokens
+- **GPT-4o**: $5.00/M input, $15.00/M output tokens
+- **GPT-4.1**: $10.00/M input, $30.00/M output tokens
+- **Claude 3 Opus**: $15.00/M input, $75.00/M output tokens
+
+## Discord Bot Integration
+
+Check out the example in `src/discord-bot/examples/openrouter-example.ts` for a complete example of how to integrate the OpenRouter service with a Discord bot slash command.
+
+## API Reference
+
+### `OpenRouterService`
+
+The main class for interacting with the OpenRouter API.
+
+#### Constructor
+
+```typescript
+constructor(
+  apiKey: string, 
+  defaultModel: string = OpenRouterModel.GPT35Turbo,
+  defaultParams: ModelParameters = DEFAULT_PARAMS,
+  baseUrl: string = "https://openrouter.ai/api/v1"
+)
+```
+
+#### Methods
+
+- `chatCompletion(messages, options?)`: Sends a completion request
+- `getAvailableModels()`: Retrieves available models
+- `estimateCost(inputTokens, outputTokens, model?)`: Estimates cost for token usage
+
+### Error Handling
+
+The service includes a comprehensive set of error classes:
+
+- `OpenRouterError`: Base error class
+- `AuthenticationError`: API key issues
+- `RateLimitError`: Rate limit exceeded
+- `QuotaExceededError`: Usage quota exceeded
+- `ServiceUnavailableError`: OpenRouter API unavailable
+- `TimeoutError`: Request timeout
+- `InvalidInputError`: Invalid input parameters
+- `ContentFilteredError`: Content flagged by moderation filters
+- `NetworkError`: Network connectivity issues
+
+Example error handling:
+
+```typescript
+try {
+  const response = await openRouter.chatCompletion(messages);
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    console.error('API key is invalid or expired');
+  } else if (error instanceof RateLimitError) {
+    console.error('Rate limit exceeded, try again later');
+  } else {
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+## Environment Variables
+
+Set up the following environment variables:
+
+```
+OPENROUTER_API_KEY=your_api_key_here
+```
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- [OpenRouter](https://openrouter.ai/) for providing the API
+- DiscordJS community for the excellent Discord bot framework 
