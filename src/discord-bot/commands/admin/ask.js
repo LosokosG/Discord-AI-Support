@@ -7,6 +7,10 @@ import dotenv from "dotenv";
 // Load environment variables
 dotenv.config();
 
+// Import our services
+import apiService from "../../services/api.js";
+import knowledgeService from "../../services/knowledge.js";
+
 // Check if OpenRouter API key is available
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_MODEL = process.env.OPENROUTER_DEFAULT_MODEL || "openai/gpt-3.5-turbo";
@@ -75,7 +79,7 @@ const openRouterClient = {
             total_tokens: 150,
           },
         });
-      }, 1000);
+      }, 100); // Szybsza odpowiedź mokowa
     });
   },
 };
@@ -94,17 +98,87 @@ export default {
     ),
 
   async execute(interaction) {
+    // Natychmiast odpowiedz z placeholder, żeby interakcja nie wygasła
+    await interaction
+      .reply({
+        content: "🔍 Processing your question...",
+        fetchReply: true,
+      })
+      .catch((err) => {
+        console.error("Error with initial reply:", err);
+        return;
+      });
+
     try {
-      // Natychmiast odrocz odpowiedź, aby uniknąć błędów czasowych
-      await interaction.deferReply();
-
       const question = interaction.options.getString("question");
+      const serverId = interaction.guildId;
 
-      // Create a basic system message for the AI
+      console.log(`[/ask] Processing question: "${question}" for server ${serverId}`);
+
+      // Defensywne sprawdzenie importów usług
+      if (!knowledgeService || !apiService) {
+        console.error("Service imports failed:", {
+          knowledgeService: !!knowledgeService,
+          apiService: !!apiService,
+        });
+
+        await interaction.editReply("Error: Service imports failed. Please contact the administrator.").catch((err) => {
+          console.error("Error editing reply after service import failure:", err);
+        });
+        return;
+      }
+
+      // Ensure server exists in database
+      try {
+        await apiService.ensureServerExists(interaction.guild);
+        console.log(`[/ask] Server ${serverId} exists or was added to the database`);
+      } catch (serverError) {
+        console.warn(`[/ask] Could not ensure server ${serverId} exists:`, serverError);
+        // Continue anyway, as the AI response doesn't strictly depend on the database
+      }
+
+      // Asynchronicznie pobierz kontekst bazy wiedzy
+      console.log(`[/ask] Finding relevant knowledge documents for question: "${question}"`);
+      let knowledgeContext = "";
+      let relevantDocsInfo = [];
+
+      try {
+        // Najpierw pobieramy listę dokumentów do loggowania
+        const relevantDocs = await knowledgeService.findRelevantDocuments(serverId, question);
+        if (relevantDocs && relevantDocs.length > 0) {
+          relevantDocsInfo = relevantDocs.map((doc) => ({
+            id: doc.id,
+            title: doc.title,
+            score: doc.score || "unknown",
+          }));
+          console.log(`[/ask] Found ${relevantDocs.length} relevant documents:`, JSON.stringify(relevantDocsInfo));
+        } else {
+          console.log(`[/ask] No relevant documents found for the question`);
+        }
+
+        // Teraz pobierz pełny kontekst z zawartością dokumentów
+        knowledgeContext = await knowledgeService.prepareContextForQuery(serverId, question);
+      } catch (knowledgeError) {
+        console.error("[/ask] Error getting knowledge context:", knowledgeError);
+        // Continue without knowledge context
+      }
+
+      // Create a system message with knowledge context if available
+      let systemContent =
+        "You are AI Support Bot, a helpful assistant. Provide concise, accurate responses to user questions. When you don't know something, be honest about it.";
+
+      if (knowledgeContext) {
+        console.log(`[/ask] Added knowledge context (${knowledgeContext.length} characters) to the prompt`);
+        systemContent +=
+          "\n\nHere is some relevant information from our knowledge base that may help you answer this question:\n\n" +
+          knowledgeContext;
+      } else {
+        console.log("[/ask] No knowledge context available, using basic system prompt");
+      }
+
       const systemMessage = {
         role: "system",
-        content:
-          "You are AI Support Bot, a helpful assistant. Provide concise, accurate responses to user questions. When you don't know something, be honest about it.",
+        content: systemContent,
       };
 
       // Create user message
@@ -113,19 +187,32 @@ export default {
         content: question,
       };
 
-      console.log("Sending question to OpenRouter:", question);
+      console.log("[/ask] Sending request to AI model");
+      const startTime = Date.now();
 
       // Get AI response
       const response = await openRouterClient.chatCompletion([systemMessage, userMessage]);
 
-      console.log("Received response from OpenRouter", response.choices ? "with choices" : "without choices");
+      const endTime = Date.now();
+      console.log(`[/ask] AI response received in ${endTime - startTime}ms`);
+
+      if (!response || !response.choices || response.choices.length === 0) {
+        console.error("[/ask] Invalid response from AI model:", response);
+
+        await interaction
+          .editReply("Sorry, I couldn't generate a response at this time. Please try again later.")
+          .catch((err) => {
+            console.error("Error editing reply after invalid AI response:", err);
+          });
+        return;
+      }
 
       // Extract AI's reply
       const aiReply = response.choices[0].message.content;
+      console.log(`[/ask] Generated response (${aiReply.length} characters)`);
 
-      // Sprawdź czy interakcja jest nadal ważna przed odpowiedzią
-      if (interaction.replied || interaction.deferred) {
-        // Send response to user (limit to 2000 chars if it's too long)
+      // Send response to user (limit to 2000 chars if it's too long)
+      try {
         if (aiReply.length <= 2000) {
           await interaction.editReply({
             content: aiReply,
@@ -146,26 +233,34 @@ export default {
             remainingText = remainingText.substring(2000);
           }
         }
-      } else {
-        console.warn("Interaction is no longer valid. Cannot respond.");
+        console.log("[/ask] Response sent to user successfully");
+      } catch (replyError) {
+        console.error("[/ask] Error sending reply:", replyError);
+      }
+
+      // Save the conversation to the database
+      try {
+        await apiService.saveConversation(serverId, {
+          userId: interaction.user.id,
+          question,
+          answer: aiReply,
+          hasKnowledgeContext: !!knowledgeContext,
+          relevantDocuments: relevantDocsInfo.length > 0 ? relevantDocsInfo : undefined,
+          status: "completed",
+        });
+        console.log("[/ask] Conversation saved to database");
+      } catch (saveError) {
+        console.error("[/ask] Error saving conversation:", saveError);
       }
     } catch (error) {
-      console.error("Error in /ask command:", error);
+      console.error("[/ask] General error:", error);
 
       try {
-        // Sprawdź czy interakcja jest nadal ważna przed odpowiedzią na błąd
-        if (interaction.replied) {
-          await interaction.followUp({
-            content: `⚠️ There was an error processing your request: ${error.message || "Unknown error"}`,
-            ephemeral: true,
-          });
-        } else if (interaction.deferred) {
-          await interaction.editReply({
-            content: `⚠️ There was an error processing your request: ${error.message || "Unknown error"}`,
-          });
-        }
+        await interaction.editReply({
+          content: `⚠️ There was an error processing your request: ${error.message || "Unknown error"}`,
+        });
       } catch (followupError) {
-        console.error("Error sending error response:", followupError);
+        console.error("[/ask] Error sending error response:", followupError);
       }
     }
   },

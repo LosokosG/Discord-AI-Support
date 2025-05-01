@@ -8,4 +8,4 @@ declare namespace astroHTML.JSX {
     class?: string;
     className?: string;
   }
-} 
+}

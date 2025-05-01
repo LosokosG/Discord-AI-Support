@@ -30,7 +30,7 @@ export interface MockServerDetail {
  */
 export async function getServerById(id: string): Promise<MockServerDetail | null> {
   // Mock servers for development
-  const mockServers: { [key: string]: MockServerDetail } = {
+  const mockServers: Record<string, MockServerDetail> = {
     "123456789": {
       id: "123456789",
       name: "AI Support Test",
@@ -40,11 +40,11 @@ export async function getServerById(id: string): Promise<MockServerDetail | null
         language: "pl",
         knowledge: { entries: 12 },
         stats: { conversations: 25 },
-        memberCount: 152
+        memberCount: 152,
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      planId: "free"
+      planId: "free",
     },
     "987654321": {
       id: "987654321",
@@ -55,11 +55,11 @@ export async function getServerById(id: string): Promise<MockServerDetail | null
         language: "en",
         knowledge: { entries: 5 },
         stats: { conversations: 10 },
-        memberCount: 48
+        memberCount: 48,
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      planId: "free"
+      planId: "free",
     },
     "555555555": {
       id: "555555555",
@@ -70,17 +70,17 @@ export async function getServerById(id: string): Promise<MockServerDetail | null
         language: "en",
         knowledge: { entries: 32 },
         stats: { conversations: 87 },
-        memberCount: 341
+        memberCount: 341,
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      planId: "pro"
-    }
+      planId: "pro",
+    },
   };
 
   // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 200));
-  
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
   // Return the server if it exists
   return mockServers[id] || null;
-} 
+}

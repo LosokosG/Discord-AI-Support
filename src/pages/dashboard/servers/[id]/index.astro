@@ -2,79 +2,119 @@
 import DashboardLayout from "@/layouts/DashboardLayout.astro";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { getServerById, type MockServerDetail } from "@/lib/services/mockServers";
 import { MessageSquare, Database, Settings, ExternalLink, Users, Clock, Bot, BarChart, Server } from "lucide-react";
+import { supabaseClient } from "@/db/supabase.client";
 
 const { id } = Astro.params;
-// Use the mock server data during development
-const server = await getServerById(id as string);
 
+// Wyświetl ID serwera do celów debugowania
+console.log("Server ID from params:", id);
+
+// Pobierz dane serwera z bazy danych
+let server = null;
+let connectionError = false;
+
+try {
+  // Próba pobrania serwera z bazy danych
+  // Używamy .or() zamiast .eq() aby dać Supabase więcej swobody w dopasowaniu ID
+  // niezależnie od tego czy jest ono stringiem czy liczbą
+  console.log("Querying for server with ID:", id);
+  const { data, error } = await supabaseClient
+    .from("servers")
+    .select("id, name, icon_url, active, config, created_at")
+    .or(`id.eq.${id},id.eq."${id}"`)
+    .maybeSingle();
+
+  console.log("Server data from DB:", data);
+
+  if (error) {
+    console.error("Error fetching server:", error);
+    connectionError = true;
+  } else if (data) {
+    server = data;
+  }
+} catch (err) {
+  console.error("Failed to fetch server:", err);
+  connectionError = true;
+}
+
+// Jeśli nie znaleziono serwera, przekieruj na stronę główną
 if (!server) {
+  console.log("Server not found, redirecting to dashboard");
   return Astro.redirect("/dashboard");
 }
 
-// TypeScript type assertion to make sure we get proper type checking
-const typedServer = server as MockServerDetail;
-
-// Mock username - in a real app, this would come from authentication
-const username = "Discord Admin";
-
-// Mock statistics for dashboard tiles
+// Domyślne statystyki dla dashboardu (w przyszłości mogą być pobierane z rzeczywistych danych)
 const stats = {
-  knowledgeEntries: typedServer.config.knowledge.entries,
-  conversations: typedServer.config.stats.conversations,
+  knowledgeEntries: 0, // Default value
+  conversations: 0, // Default value
   activeUsers: 42,
   uptime: "99.9%",
   responseTime: "1.2s",
   usage: "78%",
 };
 
-// Mock servers for the server selection dropdown
-const mockServers = [
-  {
-    id: "123456789",
-    name: "AI Support Test",
-    active: true,
-  },
-  {
-    id: "987654321",
-    name: "Development Server",
-    active: false,
-  },
-  {
-    id: "555555555",
-    name: "Community Hub",
-    active: false,
-  },
-];
+// If server.config exists and has knowledge/stats data, use it
+if (server.config && typeof server.config === "object") {
+  const config = server.config as Record<string, unknown>;
+  if (config.knowledge && typeof config.knowledge === "object") {
+    stats.knowledgeEntries = (config.knowledge as any).entries || 0;
+  }
+  if (config.stats && typeof config.stats === "object") {
+    stats.conversations = (config.stats as any).conversations || 0;
+  }
+}
+
+// Pobierz listę dostępnych serwerów do selektora
+let availableServers: { id: string | number; name: string; active: boolean }[] = [];
+try {
+  const { data, error } = await supabaseClient.from("servers").select("id, name, active").order("name");
+
+  if (!error && data) {
+    availableServers = data;
+  }
+} catch (err) {
+  console.error("Failed to fetch servers list:", err);
+}
+
+// Mock username - w rzeczywistej aplikacji, powinno pochodzić z autentykacji
+const username = "Discord Admin";
 ---
 
 <DashboardLayout
-  title={`${typedServer.name} - Dashboard`}
+  title={`${server.name} - Dashboard`}
   activeTab="servers"
-  serverName={typedServer.name}
-  serverIcon={typedServer.iconUrl || undefined}
+  serverName={server.name}
+  serverIcon={server.icon_url || undefined}
   username={username}
 >
   <div class="flex items-start w-full gap-6 p-6">
     <div class="flex-1 space-y-6">
+      {
+        connectionError && (
+          <div class="bg-discord-red/10 text-discord-red p-3 rounded-md mb-4">
+            Error connecting to the database. Some data may not be displayed correctly.
+          </div>
+        )
+      }
+
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight text-discord-text-normal">{typedServer.name}</h1>
+          <h1 class="text-2xl font-bold tracking-tight text-discord-text-normal">{server.name}</h1>
           <p class="text-discord-text-muted">Server overview and statistics</p>
         </div>
 
         <div class="flex items-center bg-[#2B2D31] rounded-md p-2 shadow-md">
           <Server className="h-5 w-5 text-discord-text-muted mr-2" />
           <select
+            id="server-selector"
             class="bg-transparent text-discord-text-normal border-none focus:outline-none focus:ring-0 text-sm font-medium"
-            onchange="window.location.href = this.value"
           >
             <option value="" disabled selected>Change server</option>
             {
-              mockServers.map((server) => (
-                <option value={`/dashboard/servers/${server.id}`} selected={server.id === id}>
-                  {server.name}
+              availableServers.map((s) => (
+                <option value={`/dashboard/servers/${s.id}`} selected={String(s.id) === id}>
+                  {s.name}
                 </option>
               ))
             }
@@ -229,3 +269,19 @@ const mockServers = [
     </div>
   </div>
 </DashboardLayout>
+
+<script>
+  // Handle server selection change
+  const serverSelector = document.getElementById("server-selector");
+
+  if (serverSelector) {
+    serverSelector.addEventListener("change", function () {
+      // TypeScript assertion for HTML select element
+      const select = this as HTMLSelectElement;
+      if (select.value) {
+        console.log("Redirecting to server:", select.value);
+        window.location.href = select.value;
+      }
+    });
+  }
+</script>

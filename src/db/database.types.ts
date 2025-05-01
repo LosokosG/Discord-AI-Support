@@ -28,7 +28,7 @@ export interface Database {
           forwarded_tickets: number;
           id: string;
           resolved_queries: number;
-          server_id: number;
+          server_id: string;
           total_queries: number;
           updated_at: string;
         };
@@ -39,7 +39,7 @@ export interface Database {
           forwarded_tickets?: number;
           id?: string;
           resolved_queries?: number;
-          server_id: number;
+          server_id: string;
           total_queries?: number;
           updated_at?: string;
         };
@@ -50,7 +50,7 @@ export interface Database {
           forwarded_tickets?: number;
           id?: string;
           resolved_queries?: number;
-          server_id?: number;
+          server_id?: string;
           total_queries?: number;
           updated_at?: string;
         };
@@ -106,7 +106,7 @@ export interface Database {
           completed_at: string | null;
           created_at: string;
           id: string;
-          server_id: number;
+          server_id: string;
           status: string;
           thread_id: string | null;
           transcript: Json;
@@ -119,7 +119,7 @@ export interface Database {
           completed_at?: string | null;
           created_at?: string;
           id?: string;
-          server_id: number;
+          server_id: string;
           status?: string;
           thread_id?: string | null;
           transcript: Json;
@@ -132,7 +132,7 @@ export interface Database {
           completed_at?: string | null;
           created_at?: string;
           id?: string;
-          server_id?: number;
+          server_id?: string;
           status?: string;
           thread_id?: string | null;
           transcript?: Json;
@@ -158,7 +158,7 @@ export interface Database {
           id: string;
           resolution_notes: string | null;
           resolved_at: string | null;
-          server_id: number;
+          server_id: string;
           status: string;
         };
         Insert: {
@@ -168,7 +168,7 @@ export interface Database {
           id?: string;
           resolution_notes?: string | null;
           resolved_at?: string | null;
-          server_id: number;
+          server_id: string;
           status?: string;
         };
         Update: {
@@ -178,7 +178,7 @@ export interface Database {
           id?: string;
           resolution_notes?: string | null;
           resolved_at?: string | null;
-          server_id?: number;
+          server_id?: string;
           status?: string;
         };
         Relationships: [
@@ -208,7 +208,7 @@ export interface Database {
           invoice_date: string;
           paid_at: string | null;
           payment_processor_id: string | null;
-          server_id: number;
+          server_id: string;
           status: string;
           subscription_id: string;
           updated_at: string;
@@ -222,7 +222,7 @@ export interface Database {
           invoice_date: string;
           paid_at?: string | null;
           payment_processor_id?: string | null;
-          server_id: number;
+          server_id: string;
           status: string;
           subscription_id: string;
           updated_at?: string;
@@ -236,7 +236,7 @@ export interface Database {
           invoice_date?: string;
           paid_at?: string | null;
           payment_processor_id?: string | null;
-          server_id?: number;
+          server_id?: string;
           status?: string;
           subscription_id?: string;
           updated_at?: string;
@@ -266,7 +266,7 @@ export interface Database {
           created_by: string | null;
           file_type: string;
           id: string;
-          server_id: number;
+          server_id: string;
           storage_path: string | null;
           title: string;
           updated_at: string;
@@ -278,7 +278,7 @@ export interface Database {
           created_by?: string | null;
           file_type: string;
           id?: string;
-          server_id: number;
+          server_id: string;
           storage_path?: string | null;
           title: string;
           updated_at?: string;
@@ -290,7 +290,7 @@ export interface Database {
           created_by?: string | null;
           file_type?: string;
           id?: string;
-          server_id?: number;
+          server_id?: string;
           storage_path?: string | null;
           title?: string;
           updated_at?: string;
@@ -315,17 +315,17 @@ export interface Database {
       server_admins: {
         Row: {
           created_at: string;
-          server_id: number;
+          server_id: string;
           user_id: string;
         };
         Insert: {
           created_at?: string;
-          server_id: number;
+          server_id: string;
           user_id: string;
         };
         Update: {
           created_at?: string;
-          server_id?: number;
+          server_id?: string;
           user_id?: string;
         };
         Relationships: [
@@ -348,17 +348,17 @@ export interface Database {
       server_shards: {
         Row: {
           assigned_at: string;
-          server_id: number;
+          server_id: string;
           shard_id: number;
         };
         Insert: {
           assigned_at?: string;
-          server_id: number;
+          server_id: string;
           shard_id: number;
         };
         Update: {
           assigned_at?: string;
-          server_id?: number;
+          server_id?: string;
           shard_id?: number;
         };
         Relationships: [
@@ -384,7 +384,7 @@ export interface Database {
           config: Json;
           created_at: string;
           icon_url: string | null;
-          id: number;
+          id: string;
           name: string;
           plan_id: string | null;
           updated_at: string;
@@ -394,7 +394,7 @@ export interface Database {
           config?: Json;
           created_at?: string;
           icon_url?: string | null;
-          id: number;
+          id: string;
           name: string;
           plan_id?: string | null;
           updated_at?: string;
@@ -404,7 +404,7 @@ export interface Database {
           config?: Json;
           created_at?: string;
           icon_url?: string | null;
-          id?: number;
+          id?: string;
           name?: string;
           plan_id?: string | null;
           updated_at?: string;
@@ -454,7 +454,7 @@ export interface Database {
           current_period_start: string;
           id: string;
           plan_id: string;
-          server_id: number;
+          server_id: string;
           status: string;
           updated_at: string;
         };
@@ -465,7 +465,7 @@ export interface Database {
           current_period_start: string;
           id?: string;
           plan_id: string;
-          server_id: number;
+          server_id: string;
           status: string;
           updated_at?: string;
         };
@@ -476,7 +476,7 @@ export interface Database {
           current_period_start?: string;
           id?: string;
           plan_id?: string;
-          server_id?: number;
+          server_id?: string;
           status?: string;
           updated_at?: string;
         };

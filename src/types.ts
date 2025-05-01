@@ -137,7 +137,7 @@ export type Invoice = Camelize<Tables<"invoices">>;
 /** Request payload for POST `/servers` (create guild configuration). */
 export interface CreateServerCommand {
   /** Discord guild ID – primary key */
-  id: ServerRow["id"];
+  id: string;
   /** Human‑readable server name */
   name: ServerRow["name"];
   /** Optional icon URL supplied by Discord API */

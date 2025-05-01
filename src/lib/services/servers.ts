@@ -58,7 +58,7 @@ export async function listServers(options: ListServersOptions, supabaseClient: S
 export async function createServer(command: CreateServerCommand, supabaseClient: SupabaseClient): Promise<Server> {
   // Prepare the data in DB format (snake_case)
   const serverData = {
-    id: typeof command.id === "string" ? parseInt(command.id, 10) : command.id,
+    id: command.id.toString(), // Store Discord IDs as strings to preserve precision
     name: command.name,
     icon_url: command.iconUrl,
     config: command.config,
@@ -90,19 +90,16 @@ export async function createServer(command: CreateServerCommand, supabaseClient:
  * Retrieves a server (guild) by its ID with detailed information
  * @throws {Error} If the server is not found or if database operation fails
  */
-export async function getServerDetail(id: string | number, supabaseClient: SupabaseClient): Promise<ServerDetail> {
-  // Convert string ID to number if needed
-  const serverId = typeof id === "string" ? parseInt(id, 10) : id;
-
-  // Get the server from the database
-  const { data, error } = await supabaseClient.from("servers").select("*").eq("id", serverId).single();
+export async function getServerDetail(id: string, supabaseClient: SupabaseClient): Promise<ServerDetail> {
+  // Query by string ID
+  const { data, error } = await supabaseClient.from("servers").select("*").eq("id", id).maybeSingle();
 
   if (error) {
-    // Handle 404 not found
-    if (error.code === "PGRST116") {
-      throw new Error(`Server with ID ${id} not found`);
-    }
     throw error;
+  }
+
+  if (!data) {
+    throw new Error(`Server with ID ${id} not found`);
   }
 
   // Transform snake_case DB result to camelCase for the API response
@@ -123,13 +120,10 @@ export async function getServerDetail(id: string | number, supabaseClient: Supab
  * @throws {Error} If the server is not found or if database operation fails
  */
 export async function updateServer(
-  id: string | number,
+  id: string,
   command: UpdateServerCommand,
   supabaseClient: SupabaseClient
 ): Promise<Server> {
-  // Convert string ID to number if needed
-  const serverId = typeof id === "string" ? parseInt(id, 10) : id;
-
   // Prepare the data in DB format (snake_case)
   const updateData: {
     name?: string;
@@ -143,14 +137,14 @@ export async function updateServer(
   if (command.active !== undefined) updateData.active = command.active;
 
   // Update the server in the database
-  const { data, error } = await supabaseClient.from("servers").update(updateData).eq("id", serverId).select().single();
+  const { data, error } = await supabaseClient.from("servers").update(updateData).eq("id", id).select().maybeSingle();
 
   if (error) {
-    // Handle 404 not found
-    if (error.code === "PGRST116") {
-      throw new Error(`Server with ID ${id} not found`);
-    }
     throw error;
+  }
+
+  if (!data) {
+    throw new Error(`Server with ID ${id} not found`);
   }
 
   // Transform snake_case DB result to camelCase for the API response
@@ -167,18 +161,20 @@ export async function updateServer(
  * Deactivates a server (soft delete)
  * @throws {Error} If the server is not found or if database operation fails
  */
-export async function deactivateServer(id: string | number, supabaseClient: SupabaseClient): Promise<void> {
-  // Convert string ID to number if needed
-  const serverId = typeof id === "string" ? parseInt(id, 10) : id;
-
+export async function deactivateServer(id: string, supabaseClient: SupabaseClient): Promise<void> {
   // Update the server to set active = false
-  const { error } = await supabaseClient.from("servers").update({ active: false }).eq("id", serverId);
+  const { data, error } = await supabaseClient
+    .from("servers")
+    .update({ active: false })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
 
   if (error) {
-    // Handle 404 not found
-    if (error.code === "PGRST116") {
-      throw new Error(`Server with ID ${id} not found`);
-    }
     throw error;
+  }
+
+  if (!data) {
+    throw new Error(`Server with ID ${id} not found`);
   }
 }

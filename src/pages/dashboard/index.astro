@@ -4,18 +4,71 @@ import { DiscordLogoIcon } from "@radix-ui/react-icons";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import ServerTabs from "@/components/dashboard/ServerTabs";
+import { supabaseClient } from "@/db/supabase.client";
 
-// Mock servers data - in a real app, this would be fetched from an API
-const popularServers = [
-  { id: "123456789", name: "AI Support Test", members: 354, iconLetter: "A", color: "bg-[#5865F2]" },
-  { id: "987654321", name: "Development", members: 128, iconLetter: "D", color: "bg-[#57F287]" },
-  { id: "555555555", name: "Community Server", members: 892, iconLetter: "C", color: "bg-[#FEE75C]" },
-];
+// Zdefiniuj typ serwera
+interface ServerItem {
+  id: number;
+  name: string;
+  icon_url: string | null;
+  active: boolean;
+  created_at: string;
+  members: number;
+  iconLetter: string;
+  color: string;
+}
 
-const recentServers = [
-  { id: "111222333", name: "Gaming Club", members: 231, iconLetter: "G", color: "bg-[#EB459E]" },
-  { id: "444555666", name: "Study Group", members: 76, iconLetter: "S", color: "bg-[#ED4245]" },
-];
+// Wyświetl zmienne środowiskowe (tylko podczas debugowania)
+console.log("SUPABASE URL:", import.meta.env.PUBLIC_SUPABASE_URL ? "Zdefiniowana" : "Brak");
+console.log("SUPABASE ANON KEY:", import.meta.env.PUBLIC_SUPABASE_ANON_KEY ? "Zdefiniowana" : "Brak");
+
+// Pobierz rzeczywiste serwery bezpośrednio z bazy danych
+let servers: ServerItem[] = [];
+let connectionError = false;
+
+try {
+  if (!import.meta.env.PUBLIC_SUPABASE_URL || !import.meta.env.PUBLIC_SUPABASE_ANON_KEY) {
+    console.error("Brak wymaganych zmiennych środowiskowych dla Supabase");
+    connectionError = true;
+  } else {
+    const { data, error } = await supabaseClient.from("servers").select("id, name, icon_url, active, created_at");
+
+    if (error) {
+      console.error("Error fetching servers:", error);
+      connectionError = true;
+    } else if (data) {
+      // Przygotuj dane serwerów do wyświetlenia
+      servers = data.map((server) => ({
+        id: server.id,
+        name: server.name,
+        icon_url: server.icon_url,
+        active: server.active,
+        created_at: server.created_at,
+        // Generuj placeholder dla liczby członków
+        members: Math.floor(Math.random() * 500) + 50,
+        // Generuj literę ikony z pierwszej litery nazwy serwera
+        iconLetter: server.name.charAt(0).toUpperCase(),
+        // Przypisz losowy kolor z palety Discord
+        color: getRandomDiscordColor(),
+      }));
+    }
+  }
+} catch (err) {
+  console.error("Failed to fetch servers:", err);
+  connectionError = true;
+}
+
+// Funkcja do generowania losowego koloru Discord
+function getRandomDiscordColor() {
+  const colors = [
+    "bg-[#5865F2]", // Discord Blurple
+    "bg-[#57F287]", // Discord Green
+    "bg-[#FEE75C]", // Discord Yellow
+    "bg-[#EB459E]", // Discord Fuchsia
+    "bg-[#ED4245]", // Discord Red
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
 ---
 
 <DashboardLayout title="Discord AI Support Dashboard" activeTab="home">
@@ -30,6 +83,14 @@ const recentServers = [
       <p class="text-xl text-discord-text-muted max-w-2xl mx-auto">
         Select a server to start managing your AI assistant, configure settings, and build your knowledge base.
       </p>
+
+      {
+        connectionError && (
+          <div class="bg-discord-red/10 text-discord-red p-3 rounded-md mt-4 max-w-xl mx-auto">
+            Unable to connect to the database. Please check your environment variables and try again.
+          </div>
+        )
+      }
 
       <div
         class="inline-flex items-center justify-center rounded-full px-4 py-1 text-sm font-medium bg-[#2B2D31] text-white mt-4"
@@ -49,7 +110,7 @@ const recentServers = [
     </div>
 
     <div class="w-full">
-      <ServerTabs popularServers={popularServers} recentServers={recentServers} client:load />
+      <ServerTabs servers={servers} client:load />
     </div>
 
     <div class="mt-8 text-center">

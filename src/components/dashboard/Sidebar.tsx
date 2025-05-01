@@ -17,14 +17,17 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { supabaseClient } from "@/db/supabase.client";
 
 // Dostosowany typ Server do użycia w komponencie
 interface ServerItem {
-  id: string;
+  id: number;
   name: string;
   active: boolean;
-  config: { language: string };
-  iconUrl: string | null;
+  config?: Record<string, unknown>;
+  icon_url: string | null;
+  iconLetter?: string;
+  color?: string;
 }
 
 // Types for navigation items
@@ -45,6 +48,10 @@ export default function Sidebar({ className, serverId }: SidebarProps) {
   const [currentServer, setCurrentServer] = useState<ServerItem | null>(null);
   const [isServerSelectorOpen, setIsServerSelectorOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // Wypisz ID serwera do celów debugowania
+  console.log("Sidebar component - Server ID prop:", serverId);
 
   // Fallback to letter avatars with different background colors
   const bgColors = [
@@ -105,70 +112,58 @@ export default function Sidebar({ className, serverId }: SidebarProps) {
   ];
 
   useEffect(() => {
-    // W rzeczywistej implementacji, pobieralibyśmy dane serwerów z API
+    // Pobierz rzeczywiste dane serwerów z bazy danych
     const fetchServers = async () => {
+      setLoading(true);
       try {
-        // Docelowo: const response = await fetch('/api/servers');
-        // Docelowo: const data = await response.json();
+        // Pobierz serwery z bazy danych przy użyciu klienta Supabase
+        const { data, error } = await supabaseClient
+          .from("servers")
+          .select("id, name, icon_url, active, config, created_at");
 
-        // Mock danych na czas developmentu
-        const mockServers: ServerItem[] = [
-          {
-            id: "123456789",
-            name: "AI Support Test",
-            active: true,
-            config: { language: "pl" },
-            iconUrl: null,
-          },
-          {
-            id: "987654321",
-            name: "Development",
-            active: false,
-            config: { language: "en" },
-            iconUrl: null,
-          },
-          {
-            id: "555555555",
-            name: "Community Server",
-            active: true,
-            config: { language: "en" },
-            iconUrl: null,
-          },
-          {
-            id: "111222333",
-            name: "Gaming Club",
-            active: false,
-            config: { language: "en" },
-            iconUrl: null,
-          },
-          {
-            id: "444555666",
-            name: "Study Group",
-            active: false,
-            config: { language: "en" },
-            iconUrl: null,
-          },
-        ];
+        if (error) {
+          console.error("Error fetching servers:", error);
+          return;
+        }
 
-        // Symulacja opóźnienia sieci
-        setTimeout(() => {
-          setServers(mockServers);
+        // Wyświetl dane serwerów dla debugowania
+        console.log("Servers retrieved from DB:", data);
 
-          // Find the current server if we have a serverId
-          if (serverId) {
-            const server = mockServers.find((s) => s.id === serverId);
-            setCurrentServer(server || null);
-          }
-        }, 500);
+        if (!data || data.length === 0) {
+          console.warn("No servers found in the database");
+          setLoading(false);
+          return;
+        }
+
+        // Przypisz dane serwerów do stanu
+        const fetchedServers = data.map((server) => ({
+          ...server,
+          // Dodaj literę ikony dla serwerów bez URL ikony
+          iconLetter: server.name.charAt(0).toUpperCase(),
+          // Przypisz kolor dla avatara
+          color: getRandomColor(server.id.toString()),
+        })) as ServerItem[];
+
+        setServers(fetchedServers);
+
+        // Znajdź aktualny serwer jeśli mamy serverId
+        if (serverId) {
+          console.log("Looking for serverId:", serverId);
+          const server = fetchedServers.find((s) => String(s.id) === serverId);
+          console.log("Found server:", server);
+          setCurrentServer(server || null);
+        }
       } catch (error) {
         console.error("Error fetching servers:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchServers();
   }, [serverId]);
 
-  // Get a random color for server icon background
+  // Get a color for server icon background based on server ID
   const getRandomColor = (id: string) => {
     const index = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % bgColors.length;
     return bgColors[index];
@@ -204,11 +199,11 @@ export default function Sidebar({ className, serverId }: SidebarProps) {
                   <div
                     className={cn(
                       "w-10 h-10 rounded-full flex items-center justify-center mr-3",
-                      getRandomColor(currentServer.id)
+                      currentServer.color || getRandomColor(currentServer.id.toString())
                     )}
                   >
-                    {currentServer.iconUrl ? (
-                      <img src={currentServer.iconUrl} alt={currentServer.name} className="w-8 h-8 rounded-full" />
+                    {currentServer.icon_url ? (
+                      <img src={currentServer.icon_url} alt={currentServer.name} className="w-8 h-8 rounded-full" />
                     ) : (
                       <span className="font-bold text-lg text-white">{currentServer.name.charAt(0)}</span>
                     )}
@@ -239,38 +234,42 @@ export default function Sidebar({ className, serverId }: SidebarProps) {
                 />
               </div>
               <div className="max-h-72 overflow-y-auto pr-1 space-y-1">
-                {filteredServers.map((server) => (
-                  <a
-                    key={server.id}
-                    href={`/dashboard/servers/${server.id}`}
-                    onClick={closeServerSelector}
-                    className={cn(
-                      "w-full flex items-center p-2 rounded-md hover:bg-[#34363c] transition-colors",
-                      server.id === serverId && "bg-[#34363c]"
-                    )}
-                  >
-                    <div
+                {loading ? (
+                  <div className="text-center py-4 text-gray-400">Loading servers...</div>
+                ) : filteredServers.length > 0 ? (
+                  filteredServers.map((server) => (
+                    <a
+                      key={server.id}
+                      href={`/dashboard/servers/${server.id}`}
+                      onClick={closeServerSelector}
                       className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center mr-3",
-                        getRandomColor(server.id)
+                        "w-full flex items-center p-2 rounded-md hover:bg-[#34363c] transition-colors",
+                        String(server.id) === serverId && "bg-[#34363c]"
                       )}
                     >
-                      {server.iconUrl ? (
-                        <img src={server.iconUrl} alt={server.name} className="w-6 h-6 rounded-full" />
-                      ) : (
-                        <span className="font-bold text-sm text-white">{server.name.charAt(0)}</span>
-                      )}
-                    </div>
-                    <span className="text-white text-sm truncate">{server.name}</span>
-                  </a>
-                ))}
-                {filteredServers.length === 0 && (
+                      <div
+                        className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center mr-3",
+                          server.color || getRandomColor(server.id.toString())
+                        )}
+                      >
+                        {server.icon_url ? (
+                          <img src={server.icon_url} alt={server.name} className="w-6 h-6 rounded-full" />
+                        ) : (
+                          <span className="font-bold text-sm text-white">{server.name.charAt(0)}</span>
+                        )}
+                      </div>
+                      <span className="text-white text-sm truncate">{server.name}</span>
+                    </a>
+                  ))
+                ) : (
                   <div className="text-center py-2 text-gray-400 text-sm">No servers found</div>
                 )}
               </div>
               <div className="mt-2 pt-2 border-t border-[#1e1f22]">
                 <a
                   href="/dashboard/servers/new"
+                  onClick={closeServerSelector}
                   className="w-full flex items-center p-2 rounded-md hover:bg-[#34363c] transition-colors text-[#57F287]"
                 >
                   <PlusCircle className="h-5 w-5 mr-2" />
