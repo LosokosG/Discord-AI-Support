@@ -1,0 +1,68 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { DiscordLogoIcon } from "@radix-ui/react-icons";
+import { Button } from "@/components/ui/button";
+import { Plus, Search } from "lucide-react";
+import ServerTabs from "@/components/dashboard/ServerTabs";
+
+// Mock servers data - in a real app, this would be fetched from an API
+const popularServers = [
+  { id: "123456789", name: "AI Support Test", members: 354, iconLetter: "A", color: "bg-[#5865F2]" },
+  { id: "987654321", name: "Development", members: 128, iconLetter: "D", color: "bg-[#57F287]" },
+  { id: "555555555", name: "Community Server", members: 892, iconLetter: "C", color: "bg-[#FEE75C]" },
+];
+
+const recentServers = [
+  { id: "111222333", name: "Gaming Club", members: 231, iconLetter: "G", color: "bg-[#EB459E]" },
+  { id: "444555666", name: "Study Group", members: 76, iconLetter: "S", color: "bg-[#ED4245]" },
+];
+---
+
+<DashboardLayout title="Discord AI Support Dashboard" activeTab="home">
+  <div class="flex flex-col p-8 max-w-6xl mx-auto">
+    <div class="text-center space-y-4 mb-12">
+      <div class="w-24 h-24 bg-primary/10 rounded-full mx-auto flex items-center justify-center mb-6">
+        <DiscordLogoIcon className="w-12 h-12 text-primary" />
+      </div>
+
+      <h1 class="text-4xl font-bold tracking-tight text-white">Welcome to AI Support Bot</h1>
+
+      <p class="text-xl text-discord-text-muted max-w-2xl mx-auto">
+        Select a server to start managing your AI assistant, configure settings, and build your knowledge base.
+      </p>
+
+      <div
+        class="inline-flex items-center justify-center rounded-full px-4 py-1 text-sm font-medium bg-[#2B2D31] text-white mt-4"
+      >
+        <span class="mr-1 h-2 w-2 rounded-full bg-discord-green"></span>
+        <span>AI Bot is online and ready</span>
+      </div>
+    </div>
+
+    <div class="relative max-w-2xl mx-auto w-full mb-10">
+      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-discord-text-muted" />
+      <input
+        type="text"
+        placeholder="Search servers..."
+        class="bg-[#2B2D31] text-white h-12 pl-12 pr-4 rounded-lg w-full border-none focus:ring-2 focus:ring-[#5865F2]"
+      />
+    </div>
+
+    <div class="w-full">
+      <ServerTabs popularServers={popularServers} recentServers={recentServers} client:load />
+    </div>
+
+    <div class="mt-8 text-center">
+      <Button asChild className="bg-[#5865F2] hover:bg-[#4752c4] text-white font-medium">
+        <a href="/dashboard/servers/new">
+          <Plus className="mr-2 h-5 w-5" />
+          Add New Server
+        </a>
+      </Button>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  // Client-side JavaScript is no longer needed for the Tabs component // as we're now using the React component with load
+</script>

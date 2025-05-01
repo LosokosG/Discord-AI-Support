@@ -1,0 +1,74 @@
+---
+import DashboardLayout from "../../../layouts/DashboardLayout.astro";
+import BackLink from "../../../components/dashboard/BackLink";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+// Handling form submission would typically be done via a client component
+// or an API endpoint. For MVP, we're just building the UI.
+---
+
+<DashboardLayout title="Add Server" activeTab="home">
+  <div class="container mx-auto py-6 px-4">
+    <div class="mb-6">
+      <BackLink href="/dashboard" />
+      <h1 class="text-2xl font-bold mt-4">Add New Server</h1>
+      <p class="text-muted-foreground">Connect your Discord server to the AI Support Bot</p>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle>Server Details</CardTitle>
+          <CardDescription> Enter your Discord server details to add it to the dashboard </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form class="space-y-4">
+            <div class="space-y-2">
+              <Label for="server-id">Discord Server ID</Label>
+              <Input id="server-id" name="serverId" placeholder="Enter your Discord server ID" required />
+              <p class="text-sm text-muted-foreground">
+                You can find your server ID by enabling Developer Mode in Discord and right-clicking on your server.
+              </p>
+            </div>
+
+            <div class="space-y-2">
+              <Label for="server-name">Server Name</Label>
+              <Input id="server-name" name="serverName" placeholder="Enter your server name" required />
+            </div>
+
+            <Button type="submit" class="w-full">Add Server</Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <div>
+        <Card>
+          <CardHeader>
+            <CardTitle>How to Connect</CardTitle>
+            <CardDescription> Follow these steps to connect your Discord server </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ol class="space-y-3 list-decimal pl-5">
+              <li>Invite the AI Support Bot to your Discord server</li>
+              <li>Ensure the bot has the necessary permissions</li>
+              <li>Copy your server ID from Discord</li>
+              <li>Enter the details in this form</li>
+              <li>Configure bot settings from the dashboard</li>
+            </ol>
+
+            <div class="mt-6 p-4 bg-neutral-100 dark:bg-neutral-800 rounded-md">
+              <h4 class="font-medium mb-2">Need help?</h4>
+              <p class="text-sm text-neutral-600 dark:text-neutral-300">
+                Check out our <a href="#" class="underline">documentation</a> for detailed setup instructions or
+                <a href="#" class="underline">contact support</a> if you're having issues.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>

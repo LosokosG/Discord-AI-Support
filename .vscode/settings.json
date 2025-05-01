@@ -25,12 +25,23 @@
     "source.fixAll.eslint": "explicit"
   },
   "eslint.enable": true,
+  "discord.enabled": true,
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "astro-build.astro-vscode",
+  "[astro]": {
+    "editor.defaultFormatter": "astro-build.astro-vscode"
+  },
   "eslint.validate": [
     "javascript",
     "javascriptreact",
+    "astro",
     "typescript",
-    "typescriptreact",
-    "astro"
+    "typescriptreact"
   ],
-  "discord.enabled": true
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "files.associations": {
+    "*.astro": "astro"
+  }
 }

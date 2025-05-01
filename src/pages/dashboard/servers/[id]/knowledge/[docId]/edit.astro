@@ -1,0 +1,74 @@
+---
+import DashboardLayout from "../../../../../../layouts/DashboardLayout.astro";
+import BackLink from "../../../../../../components/dashboard/BackLink";
+import { DocumentEditView } from "@/components/knowledge/DocumentEditView";
+import { getDocumentById, updateDocument } from "@/lib/services/documents";
+import type { KnowledgeDocumentWithContent } from "@/types/knowledge";
+
+// Get the server ID and document ID from the URL
+const { id, docId } = Astro.params;
+
+// We'll handle not having IDs in the React component
+if (!id || !docId) {
+  return Astro.redirect("/dashboard");
+}
+
+// Get document details for initial form data
+let document: KnowledgeDocumentWithContent | null = null;
+let redirectUrl: string | null = null;
+let error: string | null = null;
+
+try {
+  const supabase = Astro.locals.supabase;
+
+  // Handle form submission (PATCH)
+  if (Astro.request.method === "POST") {
+    const formData = await Astro.request.formData();
+    const title = formData.get("title") as string;
+    const content = (formData.get("content") as string) || "";
+
+    // Basic validation
+    if (!title) {
+      throw new Error("Title is required");
+    }
+
+    // Update document
+    await updateDocument(id, docId, { title, content }, supabase);
+
+    // Redirect to the document view
+    redirectUrl = `/dashboard/servers/${id}/knowledge/${docId}`;
+  } else {
+    // Get current document for edit form
+    document = (await getDocumentById(id, docId, supabase)) as KnowledgeDocumentWithContent;
+  }
+} catch (err) {
+  console.error("Error:", err);
+  error = err instanceof Error ? err.message : "An error occurred while processing your request";
+}
+
+// If we have a redirect URL, send the user there
+if (redirectUrl) {
+  return Astro.redirect(redirectUrl);
+}
+---
+
+<DashboardLayout title="Edit Document" activeTab="knowledge">
+  <div class="container mx-auto py-6 px-4">
+    <div class="mb-6">
+      <BackLink href={`/dashboard/servers/${id}/knowledge`} label="Back to Documents" />
+      <h1 class="text-2xl font-bold mt-4">Edit Document</h1>
+      <p class="text-muted-foreground">Update document content and metadata</p>
+    </div>
+
+    {
+      error ? (
+        <div class="bg-destructive/10 text-destructive border border-destructive/20 rounded-lg p-4">
+          <h3 class="font-medium">Error</h3>
+          <p>{error}</p>
+        </div>
+      ) : (
+        <DocumentEditView client:load serverId={id} documentId={docId} initialDocument={document} />
+      )
+    }
+  </div>
+</DashboardLayout>

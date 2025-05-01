@@ -1,8 +1,7 @@
 ---
-import Welcome from "../components/Welcome.astro";
-import Layout from "../layouts/Layout.astro";
----
+// In MVP, we're redirecting the main page to the dashboard directly
+// In the future, this could be a landing page or a login page
 
-<Layout>
-  <Welcome />
-</Layout>
+// Redirect to dashboard
+return Astro.redirect("/dashboard");
+---

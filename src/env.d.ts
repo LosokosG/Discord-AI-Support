@@ -15,6 +15,8 @@ interface ImportMetaEnv {
   readonly SUPABASE_URL: string;
   readonly SUPABASE_KEY: string;
   readonly OPENROUTER_API_KEY: string;
+  readonly PUBLIC_API_URL: string;
+  readonly DISCORD_BOT_TOKEN: string;
   // more env variables...
 }
 

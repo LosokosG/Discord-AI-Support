@@ -1,0 +1,231 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import { getServerById, type MockServerDetail } from "@/lib/services/mockServers";
+import { MessageSquare, Database, Settings, ExternalLink, Users, Clock, Bot, BarChart, Server } from "lucide-react";
+
+const { id } = Astro.params;
+// Use the mock server data during development
+const server = await getServerById(id as string);
+
+if (!server) {
+  return Astro.redirect("/dashboard");
+}
+
+// TypeScript type assertion to make sure we get proper type checking
+const typedServer = server as MockServerDetail;
+
+// Mock username - in a real app, this would come from authentication
+const username = "Discord Admin";
+
+// Mock statistics for dashboard tiles
+const stats = {
+  knowledgeEntries: typedServer.config.knowledge.entries,
+  conversations: typedServer.config.stats.conversations,
+  activeUsers: 42,
+  uptime: "99.9%",
+  responseTime: "1.2s",
+  usage: "78%",
+};
+
+// Mock servers for the server selection dropdown
+const mockServers = [
+  {
+    id: "123456789",
+    name: "AI Support Test",
+    active: true,
+  },
+  {
+    id: "987654321",
+    name: "Development Server",
+    active: false,
+  },
+  {
+    id: "555555555",
+    name: "Community Hub",
+    active: false,
+  },
+];
+---
+
+<DashboardLayout
+  title={`${typedServer.name} - Dashboard`}
+  activeTab="servers"
+  serverName={typedServer.name}
+  serverIcon={typedServer.iconUrl || undefined}
+  username={username}
+>
+  <div class="flex items-start w-full gap-6 p-6">
+    <div class="flex-1 space-y-6">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-discord-text-normal">{typedServer.name}</h1>
+          <p class="text-discord-text-muted">Server overview and statistics</p>
+        </div>
+
+        <div class="flex items-center bg-[#2B2D31] rounded-md p-2 shadow-md">
+          <Server className="h-5 w-5 text-discord-text-muted mr-2" />
+          <select
+            class="bg-transparent text-discord-text-normal border-none focus:outline-none focus:ring-0 text-sm font-medium"
+            onchange="window.location.href = this.value"
+          >
+            <option value="" disabled selected>Change server</option>
+            {
+              mockServers.map((server) => (
+                <option value={`/dashboard/servers/${server.id}`} selected={server.id === id}>
+                  {server.name}
+                </option>
+              ))
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Quick Actions Section - Now above statistics -->
+      <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-discord-text-normal text-xl">Quick Actions</CardTitle>
+          <CardDescription className="text-discord-text-muted text-base">Common tasks and shortcuts</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <a
+              href={`/dashboard/servers/${id}/knowledge`}
+              class={buttonVariants({
+                variant: "outline",
+                size: "lg",
+                class:
+                  "justify-start bg-gradient-to-r from-[#5865F2] to-[#7983F5] border-none text-white hover:opacity-90 shadow-md h-14 text-base",
+              })}
+            >
+              <Database className="mr-3 h-5 w-5" />
+              Add knowledge
+            </a>
+            <a
+              href={`/dashboard/servers/${id}/settings`}
+              class={buttonVariants({
+                variant: "outline",
+                size: "lg",
+                class:
+                  "justify-start bg-gradient-to-r from-[#5865F2] to-[#7983F5] border-none text-white hover:opacity-90 shadow-md h-14 text-base",
+              })}
+            >
+              <Settings className="mr-3 h-5 w-5" />
+              Bot settings
+            </a>
+            <a
+              href={`https://discord.com/channels/${id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              class={buttonVariants({
+                variant: "outline",
+                size: "lg",
+                class:
+                  "justify-start bg-gradient-to-r from-[#5865F2] to-[#7983F5] border-none text-white hover:opacity-90 shadow-md h-14 text-base",
+              })}
+            >
+              <ExternalLink className="mr-3 h-5 w-5" />
+              Open in Discord
+            </a>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Statistics Section -->
+      <div>
+        <h2 class="text-xl font-bold mb-4 text-discord-text-normal">Statistics</h2>
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-discord-text-normal">Knowledge Base</CardTitle>
+              <Database className="h-5 w-5 text-discord-text-muted" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-3xl font-bold text-discord-text-normal">
+                {stats.knowledgeEntries}
+              </div>
+              <p class="text-sm text-discord-text-muted mt-1">Knowledge base entries</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-discord-text-normal">Conversations</CardTitle>
+              <MessageSquare className="h-5 w-5 text-discord-text-muted" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-3xl font-bold text-discord-text-normal">
+                {stats.conversations}
+              </div>
+              <p class="text-sm text-discord-text-muted mt-1">Bot conversations today</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-discord-text-normal">Active Users</CardTitle>
+              <Users className="h-5 w-5 text-discord-text-muted" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-3xl font-bold text-discord-text-normal">
+                {stats.activeUsers}
+              </div>
+              <p class="text-sm text-discord-text-muted mt-1">Users today</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-discord-text-normal">Uptime</CardTitle>
+              <Clock className="h-5 w-5 text-discord-text-muted" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-3xl font-bold text-discord-text-normal">
+                {stats.uptime}
+              </div>
+              <p class="text-sm text-discord-text-muted mt-1">Bot availability</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-discord-text-normal">Response Time</CardTitle>
+              <Bot className="h-5 w-5 text-discord-text-muted" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-3xl font-bold text-discord-text-normal">
+                {stats.responseTime}
+              </div>
+              <p class="text-sm text-discord-text-muted mt-1">Average response</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-discord-text-normal">Usage</CardTitle>
+              <BarChart className="h-5 w-5 text-discord-text-muted" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-3xl font-bold text-discord-text-normal">
+                {stats.usage}
+              </div>
+              <p class="text-sm text-discord-text-muted mt-1">Resource utilization</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-discord-text-normal">Configuration</CardTitle>
+              <Settings className="h-5 w-5 text-discord-text-muted" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-3xl font-bold text-discord-text-normal">Active</div>
+              <p class="text-sm text-discord-text-muted mt-1">Server settings status</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>

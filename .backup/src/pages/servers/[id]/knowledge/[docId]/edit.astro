@@ -1,0 +1,57 @@
+---
+import Layout from "../../../../../layouts/Layout.astro";
+import { DocumentEditView } from "../../../../../components/knowledge/DocumentEditView";
+import { getDocumentById, updateDocument } from "@/lib/services/documents";
+import type { KnowledgeDocumentWithContent } from "@/types/knowledge";
+
+// Get the server ID and document ID from the URL
+const { id, docId } = Astro.params;
+
+// We'll handle not having IDs in the React component
+if (!id || !docId) {
+  return Astro.redirect("/servers");
+}
+
+// Get document details for initial form data
+let document: KnowledgeDocumentWithContent | null = null;
+let redirectUrl: string | null = null;
+
+try {
+  const supabase = Astro.locals.supabase;
+
+  // Handle form submission (PATCH)
+  if (Astro.request.method === "POST") {
+    const formData = await Astro.request.formData();
+    const title = formData.get("title") as string;
+    const content = (formData.get("content") as string) || "";
+
+    // Basic validation
+    if (!title) {
+      throw new Error("Title is required");
+    }
+
+    // Update document
+    await updateDocument(id, docId, { title, content }, supabase);
+
+    // Redirect to the document view
+    redirectUrl = `/servers/${id}/knowledge/${docId}`;
+  } else {
+    // Get current document for edit form
+    document = (await getDocumentById(id, docId, supabase)) as KnowledgeDocumentWithContent;
+  }
+} catch (err) {
+  console.error("Error:", err);
+  // We'll let the client-side component handle errors
+}
+
+// If we have a redirect URL, send the user there
+if (redirectUrl) {
+  return Astro.redirect(redirectUrl);
+}
+---
+
+<Layout title={document ? `Edit: ${document.title}` : "Edit Document"}>
+  <div class="container mx-auto py-6">
+    <DocumentEditView client:load serverId={id} documentId={docId} initialDocument={document} />
+  </div>
+</Layout>

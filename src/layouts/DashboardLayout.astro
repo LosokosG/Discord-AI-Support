@@ -1,0 +1,159 @@
+---
+import Layout from "./Layout.astro";
+import Sidebar from "@/components/dashboard/Sidebar";
+import Topbar from "@/components/dashboard/Topbar";
+import Drawer from "@/components/dashboard/Drawer";
+import { HomeIcon, SettingsIcon, LightbulbIcon } from "lucide-react";
+
+interface Props {
+  title: string;
+  activeTab?: string;
+  showTabs?: boolean;
+  serverName?: string;
+  serverIcon?: string;
+  username?: string;
+}
+
+const { title, activeTab = "home", showTabs = false, serverName, serverIcon, username = "Discord User" } = Astro.props;
+
+// Get the server ID from the URL if available
+const { id } = Astro.params;
+
+// Define navigation items for sidebar - conditionally include server ID in paths when available
+const navItems = [
+  {
+    id: "home",
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: HomeIcon,
+  },
+  {
+    id: "settings",
+    name: "Ustawienia",
+    href: id ? `/dashboard/servers/${id}/settings` : "/dashboard/settings",
+    icon: SettingsIcon,
+  },
+  {
+    id: "knowledge",
+    name: "Baza Wiedzy",
+    href: id ? `/dashboard/servers/${id}/knowledge` : "/dashboard/knowledge",
+    icon: LightbulbIcon,
+  },
+];
+
+// Create a mobile menu script to handle mobile navigation
+const mobileMenuScript = `
+  document.addEventListener('DOMContentLoaded', () => {
+    let isOpen = false;
+    
+    // Functions to manage state
+    const toggleSidebar = () => {
+      isOpen = !isOpen;
+      updateDrawerState();
+    };
+    
+    const closeSidebar = () => {
+      isOpen = false;
+      updateDrawerState();
+    };
+    
+    // Find Toggle button in Topbar
+    const topbarToggleButton = document.querySelector('header button[aria-label="Toggle menu"]');
+    if (topbarToggleButton) {
+      topbarToggleButton.addEventListener('click', toggleSidebar);
+    }
+    
+    // Update Drawer state
+    function updateDrawerState() {
+      // Custom Event for communication with React component
+      document.dispatchEvent(new CustomEvent('drawer-toggle', { 
+        detail: { isOpen: isOpen }
+      }));
+    }
+    
+    // Listen for drawer close
+    document.addEventListener('drawer-close', () => {
+      closeSidebar();
+    });
+  });
+`;
+---
+
+<Layout title={title}>
+  <div id="dashboard-container" class="flex h-screen overflow-hidden bg-[#313338] text-discord-text-normal">
+    {/* Sidebar (desktop) */}
+    <Sidebar items={navItems} activeItemId={activeTab} serverId={id} client:load />
+
+    {/* Main content area */}
+    <div class="flex-1 flex flex-col overflow-hidden">
+      {/* Topbar */}
+      <Topbar title={title} serverName={serverName} serverStatus="online" username={username} client:load />
+
+      {/* Mobile Drawer */}
+      <Drawer
+        items={navItems}
+        activeItemId={activeTab}
+        isOpen={false}
+        onClose={function () {}}
+        serverId={id}
+        client:load
+      />
+
+      {/* Tabs navigation (only when showTabs is true) */}
+      {
+        showTabs && (
+          <div class="border-b border-discord-border bg-discord-background-secondary">
+            <div class="px-6 pb-2">
+              <div class="w-full">
+                <div class="grid grid-cols-3 rounded-lg bg-[#313338]/80 p-1 h-10">
+                  <a
+                    href={id ? `/dashboard/servers/${id}/knowledge` : "/dashboard/knowledge"}
+                    class={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-discord-blurple focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${activeTab === "knowledge" ? "bg-gradient-to-r from-discord-blurple/20 to-discord-blurple/10 text-discord-blurple shadow-sm animate-glow" : "hover:bg-[#313338] hover:text-discord-interactive-hover"}`}
+                  >
+                    Knowledge Base
+                  </a>
+                  <a
+                    href={id ? `/dashboard/servers/${id}/prompt` : "/dashboard/prompt"}
+                    class={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-discord-blurple focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${activeTab === "prompt" ? "bg-gradient-to-r from-discord-blurple/20 to-discord-blurple/10 text-discord-blurple shadow-sm animate-glow" : "hover:bg-[#313338] hover:text-discord-interactive-hover"}`}
+                  >
+                    System Prompt
+                  </a>
+                  <a
+                    href={id ? `/dashboard/servers/${id}/settings` : "/dashboard/settings"}
+                    class={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-discord-blurple focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${activeTab === "settings" ? "bg-gradient-to-r from-discord-blurple/20 to-discord-blurple/10 text-discord-blurple shadow-sm animate-glow" : "hover:bg-[#313338] hover:text-discord-interactive-hover"}`}
+                  >
+                    Configuration
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Page content */}
+      <main class="flex-1 overflow-y-auto bg-[#313338]">
+        <div class="h-full animate-fadeIn">
+          <slot />
+        </div>
+      </main>
+    </div>
+  </div>
+</Layout>
+
+<script set:html={mobileMenuScript} />
+
+<script>
+  // Listen for drawer-toggle event from client and pass state to Drawer React component
+  document.addEventListener("drawer-toggle", (e) => {
+    const event = e as CustomEvent;
+    const detail = event.detail;
+    if (detail && detail.isOpen !== undefined) {
+      // Pass to React component custom event
+      const drawerEvent = new CustomEvent("update-drawer-state", {
+        detail: { isOpen: detail.isOpen },
+      });
+      document.dispatchEvent(drawerEvent);
+    }
+  });
+</script>

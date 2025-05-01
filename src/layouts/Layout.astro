@@ -1,6 +1,6 @@
 ---
 import "../styles/global.css";
-import { Toaster } from "../components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 
 interface Props {
   title?: string;
@@ -10,7 +10,7 @@ const { title = "10x Astro Starter" } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
@@ -32,3 +32,17 @@ const { title = "10x Astro Starter" } = Astro.props;
     height: 100%;
   }
 </style>
+
+<!-- Opcjonalnie - skrypt do przełączania trybu ciemnego/jasnego -->
+<script is:inline>
+  // Sprawdź, czy użytkownik ma zapisane preferencje trybu ciemnego
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  document.documentElement.classList.add(savedTheme);
+  
+  // Funkcja do przełączania trybu
+  window.toggleTheme = function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    document.documentElement.classList.toggle('dark', !isDark);
+    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+  }
+</script>
