@@ -1,8 +1,13 @@
+/* eslint-disable no-console */
 import { Events } from "discord.js";
 import apiService from "../services/api.js";
 
 // Dla ESLint
-/* global console */
+/* global console, setInterval */
+
+// Konfiguracja długości przechowywania kontekstu i interwału czyszczenia
+const CONTEXT_RETENTION_HOURS = 24; // Czas po którym kontekst jest uznawany za stary
+const CLEANUP_INTERVAL_HOURS = 6; // Jak często uruchamiać czyszczenie
 
 export default {
   name: Events.ClientReady,
@@ -33,5 +38,37 @@ export default {
     } catch (error) {
       console.error("Error registering servers:", error);
     }
+
+    // Setup periodic cleanup of old conversations
+    setupConversationCleanup();
   },
 };
+
+/**
+ * Set up periodic cleanup of old conversations
+ */
+function setupConversationCleanup() {
+  // Run cleanup immediately when bot starts
+  runConversationCleanup();
+
+  // Set up interval to run cleanup periodically
+  const intervalMs = CLEANUP_INTERVAL_HOURS * 60 * 60 * 1000; // Convert hours to milliseconds
+  setInterval(runConversationCleanup, intervalMs);
+
+  console.log(`Conversation cleanup scheduled every ${CLEANUP_INTERVAL_HOURS} hours`);
+}
+
+/**
+ * Run the conversation cleanup process
+ */
+async function runConversationCleanup() {
+  try {
+    console.log(`Running conversation cleanup (conversations older than ${CONTEXT_RETENTION_HOURS} hours)...`);
+
+    const cleanedCount = await apiService.cleanupOldConversations(CONTEXT_RETENTION_HOURS);
+
+    console.log(`Completed ${cleanedCount} conversations due to inactivity`);
+  } catch (error) {
+    console.error("Error during conversation cleanup:", error);
+  }
+}

@@ -83,7 +83,7 @@ execute function public.set_updated_at();
 
 -- Servers table - stores Discord server information and configuration
 create table public.servers (
-    id bigint primary key, -- Discord server ID
+    id text primary key, -- Discord server ID (as text to handle snowflake IDs)
     name text not null,
     icon_url text,
     config jsonb not null default '{
@@ -119,7 +119,7 @@ execute function public.notify_server_config_changed();
 
 -- Server admins table - links users to servers they can manage
 create table public.server_admins (
-    server_id bigint references public.servers(id) on delete cascade,
+    server_id text references public.servers(id) on delete cascade,
     user_id uuid references public.users(id) on delete cascade,
     created_at timestamptz not null default now(),
     primary key (server_id, user_id)
@@ -147,7 +147,7 @@ create policy server_update_policy on public.servers
 -- Knowledge documents table - stores knowledge base documents for servers
 create table public.knowledge_documents (
     id uuid primary key default gen_random_uuid(),
-    server_id bigint not null references public.servers(id) on delete cascade,
+    server_id text not null references public.servers(id) on delete cascade,
     title text not null,
     content text not null,
     content_vector tsvector generated always as (to_tsvector('english', content)) stored,
@@ -195,7 +195,7 @@ create policy knowledge_document_delete_policy on public.knowledge_documents
 -- Conversations table - stores chat history with the bot
 create table public.conversations (
     id uuid not null default gen_random_uuid(),
-    server_id bigint not null references public.servers(id) on delete cascade,
+    server_id text not null references public.servers(id) on delete cascade,
     channel_id text not null,
     thread_id text,
     user_id text not null, -- Discord user ID
@@ -232,7 +232,7 @@ create policy conversation_select_policy on public.conversations
 create table public.forwarded_tickets (
     id uuid primary key default gen_random_uuid(),
     conversation_id uuid not null,
-    server_id bigint not null references public.servers(id) on delete cascade,
+    server_id text not null references public.servers(id) on delete cascade,
     assigned_to text, -- Discord user ID of support member
     forwarded_at timestamptz not null default now(),
     status text not null check (status in ('pending', 'assigned', 'resolved')) default 'pending',
@@ -287,7 +287,7 @@ create policy shards_select_admin on public.shards
 
 -- Server shards table - maps servers to shards
 create table public.server_shards (
-    server_id bigint primary key references public.servers(id) on delete cascade,
+    server_id text primary key references public.servers(id) on delete cascade,
     shard_id integer not null references public.shards(id) on delete cascade,
     assigned_at timestamptz not null default now()
 );
@@ -306,7 +306,7 @@ create policy server_shards_select_admin on public.server_shards
 -- Subscriptions table - tracks server subscriptions to billing plans
 create table public.subscriptions (
     id uuid primary key default gen_random_uuid(),
-    server_id bigint not null references public.servers(id) on delete cascade,
+    server_id text not null references public.servers(id) on delete cascade,
     plan_id uuid not null references public.billing_plans(id),
     status text not null check (status in ('active', 'canceled', 'past_due', 'trialing')),
     current_period_start timestamptz not null,
@@ -338,7 +338,7 @@ create policy subscriptions_select_admin on public.subscriptions
 create table public.invoices (
     id uuid primary key default gen_random_uuid(),
     subscription_id uuid not null references public.subscriptions(id) on delete cascade,
-    server_id bigint not null references public.servers(id) on delete cascade,
+    server_id text not null references public.servers(id) on delete cascade,
     amount decimal(10, 2) not null,
     currency text not null default 'USD',
     status text not null check (status in ('draft', 'open', 'paid', 'uncollectible', 'void')),
@@ -372,7 +372,7 @@ create policy invoices_select_admin on public.invoices
 -- Analytics table - stores daily usage statistics for servers
 create table public.analytics (
     id uuid primary key default gen_random_uuid(),
-    server_id bigint not null references public.servers(id) on delete cascade,
+    server_id text not null references public.servers(id) on delete cascade,
     date date not null,
     total_queries integer not null default 0,
     resolved_queries integer not null default 0,
@@ -409,4 +409,15 @@ create table public.conversations_server_12345678 partition of public.conversati
 */
 
 -- Comment explaining partition strategy
-comment on table public.conversations is 'The conversations table is partitioned by server_id to improve query performance. New partitions should be created for each server when needed.'; 
+comment on table public.conversations is 'The conversations table is partitioned by server_id to improve query performance. New partitions should be created for each server when needed.';
+
+-- Add helpful comments about Discord snowflake IDs
+comment on column public.servers.id is 'Discord server ID stored as text to handle Discord snowflake IDs which exceed JavaScript safe integer limits';
+comment on column public.analytics.server_id is 'Discord server ID (text) - references servers.id';
+comment on column public.conversations.server_id is 'Discord server ID (text) - references servers.id';
+comment on column public.forwarded_tickets.server_id is 'Discord server ID (text) - references servers.id';
+comment on column public.invoices.server_id is 'Discord server ID (text) - references servers.id';
+comment on column public.knowledge_documents.server_id is 'Discord server ID (text) - references servers.id';
+comment on column public.server_admins.server_id is 'Discord server ID (text) - references servers.id';
+comment on column public.server_shards.server_id is 'Discord server ID (text) - references servers.id';
+comment on column public.subscriptions.server_id is 'Discord server ID (text) - references servers.id'; 

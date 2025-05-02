@@ -43,5 +43,8 @@
   "typescript.preferences.importModuleSpecifier": "non-relative",
   "files.associations": {
     "*.astro": "astro"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   }
 }

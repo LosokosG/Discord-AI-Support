@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { SlashCommandBuilder } from "discord.js";
 import dotenv from "dotenv";
 
@@ -10,10 +11,11 @@ dotenv.config();
 // Import our services
 import apiService from "../../services/api.js";
 import knowledgeService from "../../services/knowledge.js";
+import { addHumanAssistanceButton } from "../../utils/buttons.js";
 
 // Check if OpenRouter API key is available
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_MODEL = process.env.OPENROUTER_DEFAULT_MODEL || "openai/gpt-3.5-turbo";
+const OPENROUTER_MODEL = process.env.OPENROUTER_DEFAULT_MODEL || "openai/gpt-4.1-mini";
 
 // Prosta implementacja klienta OpenRouter bezpośrednio w JavaScript
 const openRouterClient = {
@@ -95,7 +97,13 @@ export default {
     .setDescription("Ask AI a question")
     .addStringOption((option) =>
       option.setName("question").setDescription("The question you want to ask the AI").setRequired(true)
+    )
+    .addBooleanOption((option) =>
+      option.setName("force_refresh").setDescription("Force refresh of knowledge and config data").setRequired(false)
     ),
+
+  // Expose the OpenRouter client so it can be used by other modules
+  openRouterClient,
 
   async execute(interaction) {
     // Natychmiast odpowiedz z placeholder, żeby interakcja nie wygasła
@@ -112,6 +120,14 @@ export default {
     try {
       const question = interaction.options.getString("question");
       const serverId = interaction.guildId;
+      const forceRefresh = interaction.options.getBoolean("force_refresh") || false;
+
+      if (forceRefresh) {
+        console.log(`[/ask] Force refresh requested for server ${serverId}`);
+        // Clear caches for this server
+        knowledgeService.clearCache(serverId);
+        apiService.clearCache(`server_config_${serverId}`);
+      }
 
       console.log(`[/ask] Processing question: "${question}" for server ${serverId}`);
 
@@ -138,39 +154,62 @@ export default {
       }
 
       // Asynchronicznie pobierz kontekst bazy wiedzy
-      console.log(`[/ask] Finding relevant knowledge documents for question: "${question}"`);
+      console.log(`[/ask] Finding all knowledge documents for server ${serverId}`);
       let knowledgeContext = "";
       let relevantDocsInfo = [];
 
       try {
         // Najpierw pobieramy listę dokumentów do loggowania
-        const relevantDocs = await knowledgeService.findRelevantDocuments(serverId, question);
+        const relevantDocs = await knowledgeService.findRelevantDocuments(serverId, question, forceRefresh);
         if (relevantDocs && relevantDocs.length > 0) {
           relevantDocsInfo = relevantDocs.map((doc) => ({
             id: doc.id,
             title: doc.title,
             score: doc.score || "unknown",
           }));
-          console.log(`[/ask] Found ${relevantDocs.length} relevant documents:`, JSON.stringify(relevantDocsInfo));
+          console.log(
+            `[/ask] Using all ${relevantDocs.length} knowledge documents from server:`,
+            JSON.stringify(relevantDocsInfo)
+          );
         } else {
-          console.log(`[/ask] No relevant documents found for the question`);
+          console.log(`[/ask] No knowledge documents found for this server`);
         }
 
         // Teraz pobierz pełny kontekst z zawartością dokumentów
-        knowledgeContext = await knowledgeService.prepareContextForQuery(serverId, question);
+        knowledgeContext = await knowledgeService.prepareContextForQuery(serverId, question, forceRefresh);
       } catch (knowledgeError) {
         console.error("[/ask] Error getting knowledge context:", knowledgeError);
         // Continue without knowledge context
       }
 
       // Create a system message with knowledge context if available
-      let systemContent =
-        "You are AI Support Bot, a helpful assistant. Provide concise, accurate responses to user questions. When you don't know something, be honest about it.";
+      let systemContent;
+      let serverConfig;
+
+      try {
+        // Get server config to access custom system prompt
+        serverConfig = await apiService.getServerConfig(serverId, forceRefresh);
+
+        // Use the server's custom system prompt if available
+        if (serverConfig?.config?.systemPrompt) {
+          systemContent = serverConfig.config.systemPrompt;
+          console.log(`[/ask] Using custom system prompt from server config`);
+        } else {
+          systemContent =
+            "You are AI Support Bot, a helpful assistant. Provide concise, accurate responses to user questions. When you don't know something, be honest about it.";
+          console.log(`[/ask] No custom prompt found, using default system prompt`);
+        }
+      } catch (configError) {
+        // Fallback to default if we can't get the server config
+        systemContent =
+          "You are AI Support Bot, a helpful assistant. Provide concise, accurate responses to user questions. When you don't know something, be honest about it.";
+        console.warn(`[/ask] Error getting server config: ${configError.message}, using default system prompt`);
+      }
 
       if (knowledgeContext) {
         console.log(`[/ask] Added knowledge context (${knowledgeContext.length} characters) to the prompt`);
         systemContent +=
-          "\n\nHere is some relevant information from our knowledge base that may help you answer this question:\n\n" +
+          "\n\nHere is all relevant information from our knowledge base for this server that may help you answer this question:\n\n" +
           knowledgeContext;
       } else {
         console.log("[/ask] No knowledge context available, using basic system prompt");
@@ -211,19 +250,25 @@ export default {
       const aiReply = response.choices[0].message.content;
       console.log(`[/ask] Generated response (${aiReply.length} characters)`);
 
+      // Get server language for button text
+      const serverLanguage = serverConfig?.config?.language || serverConfig?.config?.language_code || "en";
+
       // Send response to user (limit to 2000 chars if it's too long)
       try {
         if (aiReply.length <= 2000) {
-          await interaction.editReply({
-            content: aiReply,
-          });
+          // Add human assistance button to the reply
+          const messageOptions = addHumanAssistanceButton({ content: aiReply }, serverLanguage);
+
+          await interaction.editReply(messageOptions);
         } else {
           // For longer responses, split it
-          await interaction.editReply({
-            content: aiReply.substring(0, 1997) + "...",
-          });
+          // Send first part with button
+          const firstPart = aiReply.substring(0, 1997) + "...";
+          const messageOptions = addHumanAssistanceButton({ content: firstPart }, serverLanguage);
 
-          // Send the rest as follow-up messages
+          await interaction.editReply(messageOptions);
+
+          // Send the rest as follow-up messages without buttons
           let remainingText = aiReply.substring(1997);
           while (remainingText.length > 0) {
             const chunk = remainingText.substring(0, 2000);
@@ -240,15 +285,35 @@ export default {
 
       // Save the conversation to the database
       try {
-        await apiService.saveConversation(serverId, {
-          userId: interaction.user.id,
-          question,
-          answer: aiReply,
-          hasKnowledgeContext: !!knowledgeContext,
-          relevantDocuments: relevantDocsInfo.length > 0 ? relevantDocsInfo : undefined,
-          status: "completed",
-        });
-        console.log("[/ask] Conversation saved to database");
+        // First, check if there's an active conversation for this user in this channel
+        const activeConversation = await apiService.getActiveConversation(
+          serverId,
+          interaction.channelId,
+          interaction.user.id
+        );
+
+        if (activeConversation) {
+          // Update existing conversation
+          await apiService.updateConversation(activeConversation.id, serverId, [
+            { role: "user", content: question },
+            { role: "assistant", content: aiReply },
+          ]);
+          console.log(`[/ask] Updated existing conversation ${activeConversation.id} with new messages`);
+        } else {
+          // Create new conversation
+          await apiService.saveConversation(serverId, {
+            userId: interaction.user.id,
+            username: interaction.user.tag,
+            serverName: interaction.guild.name,
+            question,
+            answer: aiReply,
+            hasKnowledgeContext: !!knowledgeContext,
+            relevantDocuments: relevantDocsInfo.length > 0 ? relevantDocsInfo : undefined,
+            status: "active", // Set as active so it can be continued
+            channelId: interaction.channelId,
+          });
+          console.log("[/ask] New conversation saved to database");
+        }
       } catch (saveError) {
         console.error("[/ask] Error saving conversation:", saveError);
       }

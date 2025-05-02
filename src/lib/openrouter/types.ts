@@ -105,6 +105,7 @@ export enum OpenRouterModel {
   GPT4Turbo = "openai/gpt-4-turbo",
   GPT41 = "openai/gpt-4.1",
   GPT41Preview = "openai/gpt-4.1-preview",
+  GPT41Nano = "openai/gpt-4.1-nano",
   GPT4o = "openai/gpt-4o",
   GPT4oMini = "openai/gpt-4o-mini",
   GPT35Turbo = "openai/gpt-3.5-turbo",

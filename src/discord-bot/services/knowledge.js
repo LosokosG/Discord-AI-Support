@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import apiService from "./api.js";
 
 // Dla ESLint
@@ -6,7 +7,7 @@ import apiService from "./api.js";
 class KnowledgeService {
   constructor() {
     this.cache = new Map(); // Simple in-memory cache
-    this.cacheTTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+    this.cacheTTL = 1 * 60 * 1000; // 1 minute in milliseconds (reduced from 5 minutes)
   }
 
   /**
@@ -14,19 +15,39 @@ class KnowledgeService {
    * @param {string} serverId - Discord server ID
    */
   clearCache(serverId) {
-    this.cache.delete(serverId);
+    if (serverId) {
+      // Clear cache for specific server
+      const serverCacheKeys = [];
+
+      // Find all keys related to this server
+      for (const key of this.cache.keys()) {
+        if (key.includes(serverId)) {
+          serverCacheKeys.push(key);
+        }
+      }
+
+      // Delete all found keys
+      serverCacheKeys.forEach((key) => this.cache.delete(key));
+      console.log(`[KnowledgeService] Cleared cache for server ${serverId} (${serverCacheKeys.length} entries)`);
+    } else {
+      // Clear all cache
+      const count = this.cache.size;
+      this.cache.clear();
+      console.log(`[KnowledgeService] Cleared entire cache (${count} entries)`);
+    }
   }
 
   /**
    * Get all knowledge documents for a server
    * @param {string} serverId - Discord server ID
    * @param {boolean} useCache - Whether to use cached data if available
+   * @param {boolean} forceRefresh - Whether to force a cache refresh
    * @returns {Promise<Array>} - Array of knowledge documents
    */
-  async getKnowledgeDocuments(serverId, useCache = true) {
-    // Check cache first
+  async getKnowledgeDocuments(serverId, useCache = true, forceRefresh = false) {
+    // Check cache first, unless forcing refresh
     const cacheKey = `docs_${serverId}`;
-    if (useCache && this.cache.has(cacheKey)) {
+    if (useCache && !forceRefresh && this.cache.has(cacheKey)) {
       const cachedData = this.cache.get(cacheKey);
       if (cachedData.expiry > Date.now()) {
         return cachedData.data;
@@ -76,12 +97,13 @@ class KnowledgeService {
    * Get document content for a specific document
    * @param {string} serverId - Discord server ID
    * @param {string} documentId - Document ID
+   * @param {boolean} forceRefresh - Whether to force a cache refresh
    * @returns {Promise<Object>} - Document with content
    */
-  async getDocumentContent(serverId, documentId) {
+  async getDocumentContent(serverId, documentId, forceRefresh = false) {
     const cacheKey = `doc_${serverId}_${documentId}`;
 
-    if (this.cache.has(cacheKey)) {
+    if (!forceRefresh && this.cache.has(cacheKey)) {
       const cachedData = this.cache.get(cacheKey);
       if (cachedData.expiry > Date.now()) {
         return cachedData.data;
@@ -112,47 +134,23 @@ class KnowledgeService {
    *
    * @param {string} serverId - Discord server ID
    * @param {string} query - User query
-   * @param {number} limit - Maximum number of documents to return
+   * @param {boolean} forceRefresh - Whether to force a cache refresh
    * @returns {Promise<Array>} - Array of relevant documents
    */
-  async findRelevantDocuments(serverId, query, limit = 3) {
+  async findRelevantDocuments(serverId, query, forceRefresh = false) {
     try {
-      const documents = await this.getKnowledgeDocuments(serverId);
+      // Get all documents for the server
+      const documents = await this.getKnowledgeDocuments(serverId, true, forceRefresh);
 
       if (!documents || documents.length === 0) {
         return [];
       }
 
-      // Simple relevance search based on title
-      // In a real implementation, this should be replaced with proper semantic search
-      const queryTerms = query.toLowerCase().split(/\s+/);
-
-      const scoredDocs = documents.map((doc) => {
-        const titleTerms = doc.title.toLowerCase().split(/\s+/);
-
-        // Simple score based on term overlap
-        const matchCount = queryTerms.filter((term) =>
-          titleTerms.some((titleTerm) => titleTerm.includes(term) || term.includes(titleTerm))
-        ).length;
-
-        const score = matchCount / queryTerms.length;
-
-        return {
-          document: doc,
-          score,
-        };
-      });
-
-      // Sort by score and take top matches
-      const relevantDocs = scoredDocs
-        .filter((doc) => doc.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, limit);
-
-      // Include scores in the returned documents
-      return relevantDocs.map((item) => ({
-        ...item.document,
-        score: item.score,
+      // Return all documents for the server instead of filtering
+      // We still include a default score of 1.0 to maintain compatibility
+      return documents.map((doc) => ({
+        ...doc,
+        score: 1.0,
       }));
     } catch (error) {
       console.error(`Error finding relevant documents for query "${query}":`, error);
@@ -164,11 +162,12 @@ class KnowledgeService {
    * Prepare context for AI model based on user query
    * @param {string} serverId - Discord server ID
    * @param {string} query - User query
+   * @param {boolean} forceRefresh - Whether to force a cache refresh
    * @returns {Promise<string>} - Context for AI model
    */
-  async prepareContextForQuery(serverId, query) {
+  async prepareContextForQuery(serverId, query, forceRefresh = false) {
     try {
-      const relevantDocs = await this.findRelevantDocuments(serverId, query);
+      const relevantDocs = await this.findRelevantDocuments(serverId, query, forceRefresh);
 
       if (!relevantDocs || relevantDocs.length === 0) {
         return "";
@@ -177,7 +176,7 @@ class KnowledgeService {
       // Fetch full content for each relevant document
       const docsWithContent = await Promise.all(
         relevantDocs.map(async (doc) => {
-          const fullDoc = await this.getDocumentContent(serverId, doc.id);
+          const fullDoc = await this.getDocumentContent(serverId, doc.id, forceRefresh);
           return fullDoc;
         })
       );

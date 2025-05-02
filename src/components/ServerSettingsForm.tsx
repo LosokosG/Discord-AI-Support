@@ -59,7 +59,7 @@ const formSchema = z.object({
   enabled: z.boolean(),
   language: z.string().min(1, { message: "Language is required" }),
   systemPrompt: z.string().nullable().optional(),
-  channels: z.array(z.string()).default([]),
+  channels: z.array(z.string().regex(/^\d+$/, { message: "Channel ID must contain only digits" })).default([]),
   supportRoleId: z.string().nullable().optional(),
   maxMessagesPerUser: z
     .number()
@@ -212,6 +212,14 @@ export const ServerSettingsForm = ({
             </p>
           </div>
 
+          <div className="mb-4">
+            <h4 className="text-base font-medium">Channel Configuration</h4>
+            <p className="text-sm text-muted-foreground">
+              Choose where the bot should be active. You can select channels from the dropdown list or manually add
+              channel/category IDs.
+            </p>
+          </div>
+
           {/* Channels MultiSelect */}
           <FormField
             // @ts-expect-error - Control type mismatch
@@ -219,7 +227,7 @@ export const ServerSettingsForm = ({
             name="channels"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Channels</FormLabel>
+                <FormLabel>Active Channels</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -232,7 +240,7 @@ export const ServerSettingsForm = ({
                         <span className="truncate">
                           {field.value?.length
                             ? `${field.value.length} channel${field.value.length === 1 ? "" : "s"} selected`
-                            : "Select channels"}
+                            : "Select channels from list"}
                         </span>
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -240,7 +248,7 @@ export const ServerSettingsForm = ({
                   </PopoverTrigger>
                   <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0">
                     <Command>
-                      <CommandInput placeholder="Search channels..." />
+                      <CommandInput placeholder="Search Discord channels..." />
                       <CommandList>
                         <CommandEmpty>No channels found.</CommandEmpty>
                         <CommandGroup>
@@ -271,25 +279,109 @@ export const ServerSettingsForm = ({
                 </Popover>
                 <FormDescription>
                   Select which channels the bot will monitor. Currently selected:
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {field.value?.length ? (
-                      field.value.map((channelId) => {
-                        const channel = availableChannels.find((c) => c.id === channelId);
-                        return (
-                          <Badge key={channelId} variant="secondary">
-                            #{channel ? channel.name : channelId}
-                          </Badge>
-                        );
-                      })
-                    ) : (
-                      <span className="text-muted-foreground italic text-sm">None</span>
-                    )}
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {field.value?.map((channelId) => {
+                      const channel = availableChannels.find((c) => c.id === channelId);
+                      return (
+                        <Badge key={channelId} variant="secondary" className="mr-1 mb-1">
+                          {channel ? channel.name : channelId}
+                        </Badge>
+                      );
+                    })}
                   </div>
                 </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          {/* Manual Channel ID Input */}
+          <div className="pt-4 border-t">
+            <h4 className="text-base font-medium mb-2">Manual Channel ID Entry</h4>
+            <p className="text-sm text-muted-foreground mb-4">
+              Paste Discord channel or category IDs where the bot should be active.
+            </p>
+
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter Discord channel/category ID"
+                  className="flex-1"
+                  id="channelIdInput"
+                  type="text"
+                  disabled={isLoading}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={isLoading}
+                  onClick={() => {
+                    const input = document.getElementById("channelIdInput") as HTMLInputElement;
+                    const channelId = input.value.trim();
+
+                    // Validate that the input is a number (Discord IDs are numeric)
+                    const isValidChannelId = /^\d+$/.test(channelId);
+
+                    if (!isValidChannelId && channelId) {
+                      // Show error for invalid format
+                      input.classList.add("border-red-500");
+                      const errorText = document.getElementById("channelIdError");
+                      if (errorText) {
+                        errorText.textContent = "Channel ID must contain only digits";
+                        errorText.classList.remove("hidden");
+                      }
+                      return;
+                    }
+
+                    // Remove error styling if previously shown
+                    input.classList.remove("border-red-500");
+                    const errorText = document.getElementById("channelIdError");
+                    if (errorText) {
+                      errorText.classList.add("hidden");
+                    }
+
+                    if (channelId && !form.getValues().channels.includes(channelId)) {
+                      form.setValue("channels", [...form.getValues().channels, channelId]);
+                      input.value = "";
+                    }
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+              <p id="channelIdError" className="text-sm text-red-500 hidden">
+                Channel ID must contain only digits
+              </p>
+              <div className="border rounded-md p-3 space-y-2">
+                <p className="text-sm font-medium">Active Channels/Categories:</p>
+                {form.watch("channels").length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No channels added yet.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {form.watch("channels").map((channelId) => (
+                      <Badge key={channelId} variant="secondary" className="flex items-center gap-1 pl-2 pr-1 py-1">
+                        <span>{channelId}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            form.setValue(
+                              "channels",
+                              form.getValues().channels.filter((id) => id !== channelId)
+                            );
+                          }}
+                        >
+                          ×
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
           {/* Support Role Selection */}
           <FormField
@@ -323,6 +415,87 @@ export const ServerSettingsForm = ({
               </FormItem>
             )}
           />
+
+          {/* Manual Role ID Entry */}
+          <div className="pt-4 border-t">
+            <h4 className="text-base font-medium mb-2">Manual Role ID Entry</h4>
+            <p className="text-sm text-muted-foreground mb-4">Paste Discord role ID to assign as the support role.</p>
+
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter Discord role ID"
+                  className="flex-1"
+                  id="roleIdInput"
+                  type="text"
+                  disabled={isLoading}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={isLoading}
+                  onClick={() => {
+                    const input = document.getElementById("roleIdInput") as HTMLInputElement;
+                    const roleId = input.value.trim();
+
+                    // Validate that the input is a number (Discord IDs are numeric)
+                    const isValidRoleId = /^\d+$/.test(roleId);
+
+                    if (!isValidRoleId && roleId) {
+                      // Show error for invalid format
+                      input.classList.add("border-red-500");
+                      const errorText = document.getElementById("roleIdError");
+                      if (errorText) {
+                        errorText.textContent = "Role ID must contain only digits";
+                        errorText.classList.remove("hidden");
+                      }
+                      return;
+                    }
+
+                    // Remove error styling if previously shown
+                    input.classList.remove("border-red-500");
+                    const errorText = document.getElementById("roleIdError");
+                    if (errorText) {
+                      errorText.classList.add("hidden");
+                    }
+
+                    if (roleId) {
+                      form.setValue("supportRoleId", roleId);
+                      input.value = "";
+                    }
+                  }}
+                >
+                  Set Role
+                </Button>
+              </div>
+              <p id="roleIdError" className="text-sm text-red-500 hidden">
+                Role ID must contain only digits
+              </p>
+              <div className="border rounded-md p-3 space-y-2">
+                <p className="text-sm font-medium">Current Support Role ID:</p>
+                {!form.watch("supportRoleId") ? (
+                  <p className="text-sm text-muted-foreground">No support role set.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary" className="flex items-center gap-1 pl-2 pr-1 py-1">
+                      <span>{form.watch("supportRoleId")}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          form.setValue("supportRoleId", null);
+                        }}
+                      >
+                        ×
+                      </Button>
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Sekcja: Usage Limits */}

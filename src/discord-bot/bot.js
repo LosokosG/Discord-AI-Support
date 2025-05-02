@@ -15,6 +15,7 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds, // Podstawowe informacje o serwerach
     GatewayIntentBits.GuildMessages, // Wiadomości na serwerach
+    GatewayIntentBits.MessageContent, // Zawartość wiadomości (wymagane do czytania treści wiadomości)
   ],
 });
 
@@ -71,6 +72,37 @@ try {
   }
 } catch (error) {
   console.error("Error loading commands:", error);
+}
+
+// Load buttons
+try {
+  const buttonsPath = path.join(__dirname, "buttons");
+
+  // Create buttons directory if it doesn't exist
+  if (!fs.existsSync(buttonsPath)) {
+    fs.mkdirSync(buttonsPath);
+    console.log("Created buttons directory");
+  }
+
+  const buttonFiles = fs.readdirSync(buttonsPath).filter((file) => file.endsWith(".js"));
+
+  for (const file of buttonFiles) {
+    const filePath = path.join(buttonsPath, file);
+    // Convert to URL format for Windows ESM compatibility
+    const fileURL = new URL(`file://${filePath.replace(/\\/g, "/")}`);
+
+    try {
+      const button = await import(fileURL);
+      if ("customId" in button.default && "execute" in button.default) {
+        client.buttons.set(button.default.customId, button.default);
+        console.log(`Loaded button: ${button.default.customId}`);
+      }
+    } catch (buttonError) {
+      console.error(`Error loading button ${filePath}:`, buttonError);
+    }
+  }
+} catch (error) {
+  console.error("Error loading buttons:", error);
 }
 
 // Login to Discord with token

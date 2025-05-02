@@ -76,6 +76,21 @@ export async function getServerById(id: string): Promise<MockServerDetail | null
       updatedAt: new Date().toISOString(),
       planId: "pro",
     },
+    "1046510699809079448": {
+      id: "1046510699809079448",
+      name: "Bot testing server",
+      active: true,
+      iconUrl: "https://cdn.discordapp.com/icons/1046510699809079448/256a79ee01431deb2446463cb476ffce.webp",
+      config: {
+        language: "en",
+        knowledge: { entries: 0 },
+        stats: { conversations: 0 },
+        memberCount: 448,
+      },
+      createdAt: "2025-05-02T12:14:35.859284+00:00",
+      updatedAt: "2025-05-02T12:14:35.859284+00:00",
+      planId: "free",
+    },
   };
 
   // Simulate network delay

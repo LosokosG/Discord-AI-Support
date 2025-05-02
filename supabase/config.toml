@@ -275,6 +275,13 @@ enabled = false
 # Obtain from https://clerk.com/setup/supabase
 # domain = "example.clerk.accounts.dev"
 
+# — enable Discord OAuth via env vars —
+[auth.external.discord]
+enabled      = true
+client_id    = "env(DISCORD_CLIENT_ID)"
+secret       = "env(DISCORD_SECRET)"
+redirect_uri = "env(DISCORD_REDIRECT_URI)"
+
 [edge_runtime]
 enabled = true
 # Configure one of the supported request policies: `oneshot`, `per_worker`.

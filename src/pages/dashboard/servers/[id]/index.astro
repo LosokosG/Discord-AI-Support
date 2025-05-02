@@ -1,91 +1,32 @@
----
+/** eslint-disable no-console */
+
 import DashboardLayout from "@/layouts/DashboardLayout.astro";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
-import { MessageSquare, Database, Settings, ExternalLink, Users, Clock, Bot, BarChart, Server } from "lucide-react";
-import { supabaseClient } from "@/db/supabase.client";
-
-const { id } = Astro.params;
-
-// Wyświetl ID serwera do celów debugowania
-console.log("Server ID from params:", id);
-
-// Pobierz dane serwera z bazy danych
-let server = null;
-let connectionError = false;
-
-try {
-  // Próba pobrania serwera z bazy danych
-  // Używamy .or() zamiast .eq() aby dać Supabase więcej swobody w dopasowaniu ID
-  // niezależnie od tego czy jest ono stringiem czy liczbą
-  console.log("Querying for server with ID:", id);
-  const { data, error } = await supabaseClient
-    .from("servers")
-    .select("id, name, icon_url, active, config, created_at")
-    .or(`id.eq.${id},id.eq."${id}"`)
-    .maybeSingle();
-
-  console.log("Server data from DB:", data);
-
-  if (error) {
-    console.error("Error fetching server:", error);
-    connectionError = true;
-  } else if (data) {
-    server = data;
-  }
-} catch (err) {
-  console.error("Failed to fetch server:", err);
-  connectionError = true;
-}
-
-// Jeśli nie znaleziono serwera, przekieruj na stronę główną
-if (!server) {
-  console.log("Server not found, redirecting to dashboard");
-  return Astro.redirect("/dashboard");
-}
-
-// Domyślne statystyki dla dashboardu (w przyszłości mogą być pobierane z rzeczywistych danych)
-const stats = {
-  knowledgeEntries: 0, // Default value
-  conversations: 0, // Default value
-  activeUsers: 42,
-  uptime: "99.9%",
-  responseTime: "1.2s",
-  usage: "78%",
-};
-
-// If server.config exists and has knowledge/stats data, use it
-if (server.config && typeof server.config === "object") {
-  const config = server.config as Record<string, unknown>;
-  if (config.knowledge && typeof config.knowledge === "object") {
-    stats.knowledgeEntries = (config.knowledge as any).entries || 0;
-  }
-  if (config.stats && typeof config.stats === "object") {
-    stats.conversations = (config.stats as any).conversations || 0;
-  }
-}
-
-// Pobierz listę dostępnych serwerów do selektora
-let availableServers: { id: string | number; name: string; active: boolean }[] = [];
-try {
-  const { data, error } = await supabaseClient.from("servers").select("id, name, active").order("name");
-
-  if (!error && data) {
-    availableServers = data;
-  }
-} catch (err) {
-  console.error("Failed to fetch servers list:", err);
-}
-
-// Mock username - w rzeczywistej aplikacji, powinno pochodzić z autentykacji
-const username = "Discord Admin";
----
+import { Card, CardContent, CardDescription, CardHeader, CardTitle
+} from "@/components/ui/card"; import { buttonVariants } from "@/components/ui/button"; import { MessageSquare, Database,
+Settings, ExternalLink, Users, Clock, Bot, BarChart, Server } from "lucide-react"; import { getServerById, getAllServers
+} from "@/lib/services/serverService"; import type { ServerData } from "@/lib/services/serverService"; const { id } = Astro.params;
+// Wyświetl ID serwera do celów debugowania console.log("Server ID from params:", id); // Pobierz dane serwera z bazy danych
+let server: ServerData | null = null; let connectionError = false; if (!id) { console.log("No server ID provided, redirecting
+to dashboard"); return Astro.redirect("/dashboard"); } try { // Pobierz serwer z bazy danych server = await getServerById(id);
+if (!server) { console.log("Server not found, redirecting to dashboard"); return Astro.redirect("/dashboard"); } console.log("Server
+data from DB:", server); } catch (err) { console.error("Failed to fetch server:", err); connectionError = true; } // Server
+must exist at this point due to the redirect above const serverName = server!.name; const serverIcon = server!.icon_url;
+// Domyślne statystyki dla dashboardu (w przyszłości mogą być pobierane z rzeczywistych danych) const stats = { knowledgeEntries:
+0, // Default value conversations: 0, // Default value activeUsers: 42, uptime: "99.9%", responseTime: "1.2s", usage: "78%",
+}; // If server.config exists and has knowledge/stats data, use it if (server.config && typeof server.config === "object")
+{ const config = server.config as Record<string, unknown>; if (config.knowledge && typeof config.knowledge === "object")
+{ const knowledge = config.knowledge as Record<string, unknown>; stats.knowledgeEntries = typeof knowledge.entries === "number"
+? knowledge.entries : 0; } if (config.stats && typeof config.stats === "object") { const statsConfig = config.stats as Record<string,
+unknown>; stats.conversations = typeof statsConfig.conversations === "number" ? statsConfig.conversations : 0; } } // Pobierz
+listę dostępnych serwerów do selektora let availableServers: ServerData[] = []; try { availableServers = await getAllServers();
+} catch (err) { console.error("Failed to fetch servers list:", err); } // Mock username - w rzeczywistej aplikacji, powinno
+pochodzić z autentykacji const username = "Discord Admin";
 
 <DashboardLayout
-  title={`${server.name} - Dashboard`}
+  title={`${serverName} - Dashboard`}
   activeTab="servers"
-  serverName={server.name}
-  serverIcon={server.icon_url || undefined}
+  serverName={serverName}
+  serverIcon={serverIcon || undefined}
   username={username}
 >
   <div class="flex items-start w-full gap-6 p-6">
@@ -100,7 +41,7 @@ const username = "Discord Admin";
 
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight text-discord-text-normal">{server.name}</h1>
+          <h1 class="text-2xl font-bold tracking-tight text-discord-text-normal">{serverName}</h1>
           <p class="text-discord-text-muted">Server overview and statistics</p>
         </div>
 
@@ -131,7 +72,8 @@ const username = "Discord Admin";
         <CardContent>
           <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <a
-              href={`/dashboard/servers/${id}/knowledge`}
+              href="javascript:void(0);"
+              onclick={`window.location.href = '/dashboard/servers/${id}/knowledge';`}
               class={buttonVariants({
                 variant: "outline",
                 size: "lg",

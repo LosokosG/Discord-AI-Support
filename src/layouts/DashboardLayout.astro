@@ -19,24 +19,28 @@ const { title, activeTab = "home", showTabs = false, serverName, serverIcon, use
 // Get the server ID from the URL if available
 const { id } = Astro.params;
 
+// Check if we're on a server-specific page
+const currentPath = Astro.url.pathname;
+const isServerPage = currentPath.includes("/dashboard/servers/") && /\/dashboard\/servers\/[^/]+/.test(currentPath);
+
 // Define navigation items for sidebar - conditionally include server ID in paths when available
 const navItems = [
   {
     id: "home",
     name: "Dashboard",
-    href: "/dashboard",
+    href: isServerPage && id ? `/dashboard/servers/${id}` : "/dashboard",
     icon: HomeIcon,
   },
   {
     id: "settings",
     name: "Ustawienia",
-    href: id ? `/dashboard/servers/${id}/settings` : "/dashboard/settings",
+    href: isServerPage && id ? `/dashboard/servers/${id}/settings` : "/dashboard/settings",
     icon: SettingsIcon,
   },
   {
     id: "knowledge",
     name: "Baza Wiedzy",
-    href: id ? `/dashboard/servers/${id}/knowledge` : "/dashboard/knowledge",
+    href: isServerPage && id ? `/dashboard/servers/${id}/knowledge` : "/dashboard",
     icon: LightbulbIcon,
   },
 ];
@@ -90,14 +94,7 @@ const mobileMenuScript = `
       <Topbar title={title} serverName={serverName} serverStatus="online" username={username} client:load />
 
       {/* Mobile Drawer */}
-      <Drawer
-        items={navItems}
-        activeItemId={activeTab}
-        isOpen={false}
-        onClose={function () {}}
-        serverId={id}
-        client:load
-      />
+      <Drawer items={navItems} activeItemId={activeTab} isOpen={false} onClose={() => {}} serverId={id} client:load />
 
       {/* Tabs navigation (only when showTabs is true) */}
       {
@@ -107,19 +104,19 @@ const mobileMenuScript = `
               <div class="w-full">
                 <div class="grid grid-cols-3 rounded-lg bg-[#313338]/80 p-1 h-10">
                   <a
-                    href={id ? `/dashboard/servers/${id}/knowledge` : "/dashboard/knowledge"}
+                    href={isServerPage && id ? `/dashboard/servers/${id}/knowledge` : "/dashboard"}
                     class={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-discord-blurple focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${activeTab === "knowledge" ? "bg-gradient-to-r from-discord-blurple/20 to-discord-blurple/10 text-discord-blurple shadow-sm animate-glow" : "hover:bg-[#313338] hover:text-discord-interactive-hover"}`}
                   >
                     Knowledge Base
                   </a>
                   <a
-                    href={id ? `/dashboard/servers/${id}/prompt` : "/dashboard/prompt"}
+                    href={isServerPage && id ? `/dashboard/servers/${id}/prompt` : "/dashboard/prompt"}
                     class={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-discord-blurple focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${activeTab === "prompt" ? "bg-gradient-to-r from-discord-blurple/20 to-discord-blurple/10 text-discord-blurple shadow-sm animate-glow" : "hover:bg-[#313338] hover:text-discord-interactive-hover"}`}
                   >
                     System Prompt
                   </a>
                   <a
-                    href={id ? `/dashboard/servers/${id}/settings` : "/dashboard/settings"}
+                    href={isServerPage && id ? `/dashboard/servers/${id}/settings` : "/dashboard/settings"}
                     class={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-discord-blurple focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${activeTab === "settings" ? "bg-gradient-to-r from-discord-blurple/20 to-discord-blurple/10 text-discord-blurple shadow-sm animate-glow" : "hover:bg-[#313338] hover:text-discord-interactive-hover"}`}
                   >
                     Configuration

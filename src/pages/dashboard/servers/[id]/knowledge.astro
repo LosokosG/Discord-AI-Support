@@ -1,21 +1,32 @@
 ---
+/** eslint-disable no-console */
+
 import DashboardLayout from "@/layouts/DashboardLayout.astro";
 import DiscordKnowledgeList from "@/components/knowledge/DiscordKnowledgeList";
 import { getDocumentsByServerId } from "@/lib/services/documents";
 import type { DocumentList as DocumentListType } from "@/types";
-import { getServerById } from "@/lib/services/mockServers";
+import { getServerById } from "@/lib/services/serverService";
 
 // Get the server ID from the URL
 const { id } = Astro.params;
 
+// Debug logs
+console.log("***** DEBUG KNOWLEDGE PAGE *****");
+console.log("Current path:", Astro.url.pathname);
+console.log("Server ID from params:", id);
+
 // We'll handle not having an ID in the React component
 if (!id) {
+  console.log("No server ID found, redirecting to dashboard");
   return Astro.redirect("/dashboard");
 }
 
-// Get server details for the header
+// Get server from database
 const server = await getServerById(id);
+
+// If not found, redirect to dashboard
 if (!server) {
+  console.log(`Server with ID ${id} not found, redirecting to dashboard`);
   return Astro.redirect("/dashboard");
 }
 
@@ -23,22 +34,27 @@ if (!server) {
 let documents: DocumentListType | null = null;
 
 try {
-  // @ts-ignore - Supabase is available in Astro.locals
   const supabase = Astro.locals.supabase;
-  documents = await getDocumentsByServerId(id, { page: 1, pageSize: 100 }, supabase);
+  if (!supabase) {
+    console.error("Supabase client not available in Astro.locals");
+  } else {
+    documents = await getDocumentsByServerId(id, { page: 1, pageSize: 100 }, supabase);
+    console.log(`Found ${documents?.data?.length || 0} documents for server ${id}`);
+  }
 } catch (err) {
   console.error("Error fetching documents:", err);
   // We'll let the client-side component handle the error
 }
 
-// Convert null iconUrl to undefined for the DashboardLayout prop
-const serverIcon = server.iconUrl || undefined;
+// Convert database server to the format expected by the layout
+const serverName = server.name;
+const serverIcon = server.icon_url || undefined;
 ---
 
-<DashboardLayout 
-  title={`${server.name} - Knowledge Base`} 
-  activeTab="knowledge" 
-  serverName={server.name}
+<DashboardLayout
+  title={`${serverName} - Knowledge Base`}
+  activeTab="knowledge"
+  serverName={serverName}
   serverIcon={serverIcon}
   showTabs={true}
 >

@@ -1,9 +1,13 @@
+/* eslint-disable no-console */
 import { defineMiddleware } from "astro:middleware";
 import { createClient } from "@supabase/supabase-js";
 
-const MOCK_USER_ID = "b0d9e154-f13a-468a-abf3-e2e2db9b6f22";
+const MOCK_USER_ID = "0204e012-5d8f-4ad0-87a4-b94d228fea14";
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  // Log the URL to help debug
+  console.log(`${new Date().toISOString().split("T")[1]} [REQUEST] ${context.request.method} ${context.url.pathname}`);
+
   // Make sure these values exist in your .env file
   const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
   const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
@@ -41,5 +45,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     console.error("Missing Supabase configuration. Check your .env file.");
   }
 
-  return next();
+  const response = await next();
+
+  // Log the response status for debugging
+  console.log(
+    `${new Date().toISOString().split("T")[1]} [${response.status}] ${context.url.pathname} ${Date.now() - performance.now()}ms`
+  );
+
+  return response;
 });

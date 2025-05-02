@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -21,21 +22,24 @@ import { supabaseClient } from "@/db/supabase.client";
 
 // Dostosowany typ Server do użycia w komponencie
 interface ServerItem {
-  id: number;
+  id: string;
   name: string;
   active: boolean;
   config?: Record<string, unknown>;
   icon_url: string | null;
   iconLetter?: string;
   color?: string;
+  created_at?: string;
 }
 
 // Types for navigation items
 export interface NavItemType {
-  id: string;
-  name: string;
+  id?: string;
+  title: string;
+  name?: string;
   href: string;
   icon?: React.ComponentType<{ className?: string }>;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 interface SidebarProps {
@@ -53,6 +57,12 @@ export default function Sidebar({ className, serverId }: SidebarProps) {
   // Wypisz ID serwera do celów debugowania
   console.log("Sidebar component - Server ID prop:", serverId);
 
+  // Check if we're on a server-specific page
+  const isServerPage =
+    typeof window !== "undefined" &&
+    window.location.pathname.includes("/dashboard/servers/") &&
+    /\/dashboard\/servers\/[^/]+/.test(window.location.pathname);
+
   // Fallback to letter avatars with different background colors
   const bgColors = [
     "bg-[#5865F2]", // Discord Blurple
@@ -66,47 +76,59 @@ export default function Sidebar({ className, serverId }: SidebarProps) {
   const navItems = [
     {
       title: "Dashboard",
-      href: `/dashboard${serverId ? `/servers/${serverId}` : ""}`,
+      href: `/dashboard${isServerPage && serverId ? `/servers/${serverId}` : ""}`,
       icon: Home,
     },
     {
+      title: "Knowledge Base",
+      href: `/dashboard${isServerPage && serverId ? `/servers/${serverId}/knowledge` : ""}`,
+      icon: Database,
+      onClick: (e: React.MouseEvent) => {
+        // If server is selected but we're not on a server page, prevent default and force navigation
+        if (serverId && !isServerPage) {
+          e.preventDefault();
+          window.location.href = `/dashboard/servers/${serverId}/knowledge`;
+        }
+      },
+    },
+    {
       title: "Modules",
-      href: `/dashboard${serverId ? `/servers/${serverId}` : ""}/modules`,
+      href: `/dashboard${isServerPage && serverId ? `/servers/${serverId}/modules` : ""}`,
       icon: ListTree,
     },
     {
       title: "Commands",
-      href: `/dashboard${serverId ? `/servers/${serverId}` : ""}/commands`,
+      href: `/dashboard${isServerPage && serverId ? `/servers/${serverId}/commands` : ""}`,
       icon: MessageSquare,
     },
     {
       title: "Permissions",
-      href: `/dashboard${serverId ? `/servers/${serverId}` : ""}/permissions`,
+      href: `/dashboard${isServerPage && serverId ? `/servers/${serverId}/permissions` : ""}`,
       icon: Shield,
     },
     {
       title: "Members",
-      href: `/dashboard${serverId ? `/servers/${serverId}` : ""}/members`,
+      href: `/dashboard${isServerPage && serverId ? `/servers/${serverId}/members` : ""}`,
       icon: Users,
     },
     {
       title: "Analytics",
-      href: `/dashboard${serverId ? `/servers/${serverId}` : ""}/analytics`,
+      href: `/dashboard${isServerPage && serverId ? `/servers/${serverId}/analytics` : ""}`,
       icon: BarChart3,
     },
     {
       title: "Logs",
-      href: `/dashboard${serverId ? `/servers/${serverId}` : ""}/logs`,
+      href: `/dashboard${isServerPage && serverId ? `/servers/${serverId}/logs` : ""}`,
       icon: Database,
     },
     {
       title: "Settings",
-      href: `/dashboard${serverId ? `/servers/${serverId}` : ""}/settings`,
+      href: `/dashboard${isServerPage && serverId ? `/servers/${serverId}/settings` : ""}`,
       icon: Settings,
     },
     {
       title: "Help & Support",
-      href: `/dashboard${serverId ? `/servers/${serverId}` : ""}/help`,
+      href: `/dashboard${isServerPage && serverId ? `/servers/${serverId}/help` : ""}`,
       icon: HelpCircle,
     },
   ];
@@ -286,6 +308,7 @@ export default function Sidebar({ className, serverId }: SidebarProps) {
           <a
             key={item.title}
             href={item.href}
+            onClick={item.onClick}
             className="flex items-center gap-5 px-5 py-3 text-base rounded-lg hover:bg-[#5865F2]/80 transition-all duration-200 group"
           >
             <item.icon className="h-5 w-5 text-gray-300 group-hover:text-white" />

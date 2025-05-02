@@ -376,3 +376,76 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - [OpenRouter](https://openrouter.ai/) for providing the API
 - DiscordJS community for the excellent Discord bot framework 
+
+# AI Support Bot
+
+This Discord bot uses AI to provide automated support for your Discord server.
+
+## Features
+
+### Slash Commands
+
+- `/ask <question>` - Ask the AI a question
+- `/config auto_respond <channel> <enabled>` - Configure channels for automatic responses
+- `/config list` - List channels configured for automatic responses
+
+### Auto-Response Feature
+
+The bot can automatically respond to any message in designated channels or categories without requiring the `/ask` command. This creates a natural chat experience in specific support channels.
+
+#### How to Set Up Auto-Responses
+
+1. Configure channels or categories where the bot should automatically respond:
+   ```
+   /config auto_respond channel:#your-channel enabled:true
+   ```
+
+2. To add a whole category (all channels under it):
+   ```
+   /config auto_respond channel:Your Category Name enabled:true
+   ```
+
+3. To view configured channels:
+   ```
+   /config list
+   ```
+
+4. To disable auto-responses in a channel:
+   ```
+   /config auto_respond channel:#your-channel enabled:false
+   ```
+
+#### Threads Support
+
+The bot automatically responds in all threads created in configured channels or categories. This allows for organized conversations while maintaining AI assistance.
+
+#### Welcome Messages
+
+The bot sends a welcome message with instructions in:
+- New threads created in configured channels
+- New channels created in configured categories
+
+This ensures users know they can interact with the bot directly in that channel or thread.
+
+#### Notes
+
+- The bot will only respond in explicitly configured channels/categories and their threads
+- Auto-responses use the same knowledge base and AI model as the `/ask` command
+- Server admins can customize the system prompt via the dashboard
+- Auto-responses are recorded in the conversation history same as `/ask` commands
+
+### Conversation Context Memory
+
+The bot maintains conversation context with users to provide more natural interactions:
+
+- Each user can have multiple concurrent conversations across different channels and servers
+- The bot remembers the conversation history for 24 hours
+- Users are informed about context retention when starting a new conversation 
+- Conversations are automatically cleaned up after 24 hours of inactivity
+- The context is stored securely in the database
+
+This feature allows the bot to reference previous messages, understand follow-up questions, and provide continuity in conversations without requiring users to repeat information.
+
+## Installation & Setup
+
+[Your existing installation instructions here] 

@@ -1,6 +1,6 @@
 -- Migration: convert_server_id_to_text
 -- Description: Changes the server_id and related foreign keys from bigint to text to better handle Discord IDs
--- Created at: 2024-09-10 15:30:00 UTC
+-- Created at: 2025-04-17 12:09:00 UTC
 
 -- ========================================================================================
 -- Metadata:

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { useState, useEffect } from "react";
 import { Server2, Settings, BookOpen, PlusCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
