@@ -1,26 +1,79 @@
+---
 /** eslint-disable no-console */
 
 import DashboardLayout from "@/layouts/DashboardLayout.astro";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle
-} from "@/components/ui/card"; import { buttonVariants } from "@/components/ui/button"; import { MessageSquare, Database,
-Settings, ExternalLink, Users, Clock, Bot, BarChart, Server } from "lucide-react"; import { getServerById, getAllServers
-} from "@/lib/services/serverService"; import type { ServerData } from "@/lib/services/serverService"; const { id } = Astro.params;
-// Wyświetl ID serwera do celów debugowania console.log("Server ID from params:", id); // Pobierz dane serwera z bazy danych
-let server: ServerData | null = null; let connectionError = false; if (!id) { console.log("No server ID provided, redirecting
-to dashboard"); return Astro.redirect("/dashboard"); } try { // Pobierz serwer z bazy danych server = await getServerById(id);
-if (!server) { console.log("Server not found, redirecting to dashboard"); return Astro.redirect("/dashboard"); } console.log("Server
-data from DB:", server); } catch (err) { console.error("Failed to fetch server:", err); connectionError = true; } // Server
-must exist at this point due to the redirect above const serverName = server!.name; const serverIcon = server!.icon_url;
-// Domyślne statystyki dla dashboardu (w przyszłości mogą być pobierane z rzeczywistych danych) const stats = { knowledgeEntries:
-0, // Default value conversations: 0, // Default value activeUsers: 42, uptime: "99.9%", responseTime: "1.2s", usage: "78%",
-}; // If server.config exists and has knowledge/stats data, use it if (server.config && typeof server.config === "object")
-{ const config = server.config as Record<string, unknown>; if (config.knowledge && typeof config.knowledge === "object")
-{ const knowledge = config.knowledge as Record<string, unknown>; stats.knowledgeEntries = typeof knowledge.entries === "number"
-? knowledge.entries : 0; } if (config.stats && typeof config.stats === "object") { const statsConfig = config.stats as Record<string,
-unknown>; stats.conversations = typeof statsConfig.conversations === "number" ? statsConfig.conversations : 0; } } // Pobierz
-listę dostępnych serwerów do selektora let availableServers: ServerData[] = []; try { availableServers = await getAllServers();
-} catch (err) { console.error("Failed to fetch servers list:", err); } // Mock username - w rzeczywistej aplikacji, powinno
-pochodzić z autentykacji const username = "Discord Admin";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import { MessageSquare, Database, Settings, ExternalLink, Users, Clock, Bot, BarChart, Server } from "lucide-react";
+import { getServerById, getAllServers } from "@/lib/services/serverService";
+import type { ServerData } from "@/lib/services/serverService";
+
+const { id } = Astro.params;
+// Wyświetl ID serwera do celów debugowania
+console.log("Server ID from params:", id);
+
+// Pobierz dane serwera z bazy danych
+let server: ServerData | null = null;
+let connectionError = false;
+
+if (!id) {
+  console.log("No server ID provided, redirecting to dashboard");
+  return Astro.redirect("/dashboard");
+}
+
+try {
+  // Pobierz serwer z bazy danych
+  server = await getServerById(id);
+  if (!server) {
+    console.log("Server not found, redirecting to dashboard");
+    return Astro.redirect("/dashboard");
+  }
+  console.log("Server data from DB:", server);
+} catch (err) {
+  console.error("Failed to fetch server:", err);
+  connectionError = true;
+}
+
+// Server must exist at this point due to the redirect above
+const serverName = server!.name;
+const serverIcon = server!.icon_url;
+
+// Domyślne statystyki dla dashboardu (w przyszłości mogą być pobierane z rzeczywistych danych)
+const stats = {
+  knowledgeEntries: 0, // Default value
+  conversations: 0, // Default value
+  activeUsers: 42,
+  uptime: "99.9%",
+  responseTime: "1.2s",
+  usage: "78%",
+};
+
+// If server.config exists and has knowledge/stats data, use it
+if (server.config && typeof server.config === "object") {
+  const config = server.config as Record<string, unknown>;
+
+  if (config.knowledge && typeof config.knowledge === "object") {
+    const knowledge = config.knowledge as Record<string, unknown>;
+    stats.knowledgeEntries = typeof knowledge.entries === "number" ? knowledge.entries : 0;
+  }
+
+  if (config.stats && typeof config.stats === "object") {
+    const statsConfig = config.stats as Record<string, unknown>;
+    stats.conversations = typeof statsConfig.conversations === "number" ? statsConfig.conversations : 0;
+  }
+}
+
+// Pobierz listę dostępnych serwerów do selektora
+let availableServers: ServerData[] = [];
+try {
+  availableServers = await getAllServers();
+} catch (err) {
+  console.error("Failed to fetch servers list:", err);
+}
+
+// Mock username - w rzeczywistej aplikacji, powinno pochodzić z autentykacji
+const username = "Discord Admin";
+---
 
 <DashboardLayout
   title={`${serverName} - Dashboard`}
