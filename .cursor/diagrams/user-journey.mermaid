@@ -1,0 +1,101 @@
+
+stateDiagram-v2
+    [*] --> StronaGlowna
+    
+    state "Dostęp Jako Niezalogowany" as DostepNiezalogowany {
+        StronaGlowna: Strona z opisem produktu
+        StronaGlowna --> StronaLogowania: Kliknięcie "Zaloguj przez Discord"
+        
+        note right of StronaGlowna
+            Landing page z:
+            - Opisem produktu
+            - Głównymi funkcjami
+            - Przyciskiem logowania
+        end note
+    }
+    
+    state "Proces Autentykacji" as ProcesAutentykacji {
+        StronaLogowania: Dedykowana strona logowania
+        EkranAutoryzacjiDiscord: Ekran autoryzacji Discord
+        
+        state if_autoryzacja <<choice>>
+        
+        StronaLogowania --> EkranAutoryzacjiDiscord: Przekierowanie do OAuth Discord
+        EkranAutoryzacjiDiscord --> if_autoryzacja: Akcja użytkownika
+        if_autoryzacja --> ObslugaCallback: Akceptacja
+        if_autoryzacja --> KomunikatBledu: Odmowa/Błąd
+        
+        ObslugaCallback: Przetwarzanie callback OAuth
+        ObslugaCallback --> WeryfikacjaTokenu: Wymiana kodu na token
+        
+        KomunikatBledu: Komunikat o błędzie
+        KomunikatBledu --> StronaLogowania: Powrót do logowania
+        
+        state "Weryfikacja Danych" as WeryfikacjaTokenu {
+            WeryfikacjaCSRF: Weryfikacja tokenu state
+            PobranieInformacji: Pobranie danych użytkownika i serwerów
+            UtworzenieSesji: Utworzenie/aktualizacja danych w Supabase
+            
+            WeryfikacjaCSRF --> PobranieInformacji: Token poprawny
+            PobranieInformacji --> UtworzenieSesji: Dane pobrane
+        }
+        
+        UtworzenieSesji --> WyborSerwera: Przekierowanie
+    }
+    
+    state "Dostęp Jako Zalogowany" as DostepZalogowany {
+        WyborSerwera: Strona wyboru serwera
+        
+        state if_serwery <<choice>>
+        
+        WyborSerwera --> if_serwery: Sprawdzenie uprawnień i serwerów
+        if_serwery --> BrakSerwerow: Brak serwerów/uprawnień
+        if_serwery --> ListaSerwerow: Dostępne serwery
+        
+        BrakSerwerow: Komunikat o braku dostępnych serwerów
+        
+        ListaSerwerow: Lista serwerów z dostępem
+        ListaSerwerow --> Dashboard: Wybór serwera
+        
+        state "Panel Główny" as Dashboard {
+            state StronaGlownaPanel <<fork>>
+            StronaGlownaPanel --> ZarzadzanieBazaWiedzy
+            StronaGlownaPanel --> KonfiguracjaBota
+            StronaGlownaPanel --> UstawieniaLimitow
+            
+            ZarzadzanieBazaWiedzy: Zarządzanie bazą wiedzy
+            KonfiguracjaBota: Konfiguracja ustawień bota
+            UstawieniaLimitow: Ustawienia limitów
+        }
+        
+        Dashboard --> WyborSerwera: Zmiana serwera
+    }
+    
+    DostepZalogowany --> WylogowanieProcess: Kliknięcie "Wyloguj"
+    
+    state "Proces Wylogowania" as WylogowanieProcess {
+        UsuwanieSesji: Usunięcie sesji
+        CzyszczenieCookie: Czyszczenie cookie
+        
+        UsuwanieSesji --> CzyszczenieCookie
+        CzyszczenieCookie --> StronaGlowna: Przekierowanie
+    }
+    
+    state VerifyProcess <<join>>
+    WeryfikacjaTokenu --> VerifyProcess: Token niepoprawny/brak
+    VerifyProcess --> KomunikatBledu
+    
+    state "Weryfikacja Sesji" as WeryfikacjaSesji {
+        state SesjaCheck <<choice>>
+        WeryfikacjaMiddleware: Sprawdzanie tokenu przez middleware
+        
+        WeryfikacjaMiddleware --> SesjaCheck
+        SesjaCheck --> DostepZalogowany: Sesja aktywna
+        
+        state if_odswiezenie <<choice>>
+        SesjaCheck --> if_odswiezenie: Sesja wygasła
+        if_odswiezenie --> DostepZalogowany: Odświeżenie udane
+        if_odswiezenie --> StronaLogowania: Brak możliwości odświeżenia
+    }
+    
+    Dashboard --> WeryfikacjaSesji: Żądanie chronionego zasobu
