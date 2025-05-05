@@ -17,6 +17,8 @@ const PUBLIC_PATHS = [
   "/api/auth/logout",
   "/api/auth/me",
   "/api/auth/debug-session",
+  // Endpointy API Servers
+  "/api/servers/list",
 ];
 
 export const onRequest = defineMiddleware(async ({ locals, cookies, url, request, redirect }, next) => {

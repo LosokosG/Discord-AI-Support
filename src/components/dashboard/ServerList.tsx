@@ -1,18 +1,44 @@
 /* eslint-disable no-console */
-import { useState, useEffect } from "react";
-import { Server2, Settings, BookOpen, PlusCircle, Loader2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  Server2,
+  Settings,
+  BookOpen,
+  PlusCircle,
+  Loader2,
+  Search,
+  ServerOff,
+  Shield,
+  CircleSlashed,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppState } from "@/components/hooks/useAppState";
 import { useSupabase } from "@/components/hooks/useSupabase";
 import { getServers } from "@/lib/services/api";
 import { toast } from "@/components/ui/sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface Server {
+  id: string;
+  name: string;
+  icon_url: string | null;
+  permissions: string;
+  has_bot: boolean;
+  is_admin: boolean;
+}
 
 export default function ServerList() {
   const { state, setServers, setServersLoading, setServersError } = useAppState();
   const supabase = useSupabase();
   const [page, setPage] = useState(1);
   const pageSize = 6; // Number of servers per page
+  const [servers, setServersState] = useState<Server[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Load servers when component mounts or pagination changes
   useEffect(() => {
@@ -33,6 +59,32 @@ export default function ServerList() {
     loadServers();
   }, [supabase, page, setServers, setServersLoading, setServersError]);
 
+  useEffect(() => {
+    const fetchServers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch("/api/servers/list");
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Nie udało się pobrać listy serwerów");
+        }
+
+        const data = await response.json();
+        setServersState(data.guilds);
+      } catch (err) {
+        console.error("Error fetching servers:", err);
+        setError(err instanceof Error ? err.message : "Wystąpił nieznany błąd");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchServers();
+  }, []);
+
   // Handle pagination
   const handlePrevPage = () => {
     if (page > 1) {
@@ -46,11 +98,67 @@ export default function ServerList() {
     }
   };
 
+  // Filtrowanie serwerów na podstawie wyszukiwania
+  const filteredServers = servers.filter((server) => server.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  // Sortowanie serwerów: najpierw te z botem, potem reszta
+  const sortedServers = [...filteredServers].sort((a, b) => {
+    if (a.has_bot && !b.has_bot) return -1;
+    if (!a.has_bot && b.has_bot) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  // Funkcja generująca kolor tła dla avatara serwera bez ikony
+  const getServerColor = (id: string) => {
+    const colors = [
+      "bg-[#5865F2]", // Discord Blurple
+      "bg-[#57F287]", // Discord Green
+      "bg-[#FEE75C]", // Discord Yellow
+      "bg-[#EB459E]", // Discord Fuchsia
+      "bg-[#ED4245]", // Discord Red
+    ];
+
+    const colorIndex = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+
+    return colors[colorIndex];
+  };
+
+  // Renderowanie skeletonów podczas ładowania
+  if (loading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 p-4">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="border rounded-lg p-4 bg-background">
+            <div className="flex items-center space-x-4">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Wyświetlanie błędu
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <ServerOff className="h-16 w-16 text-destructive mb-4" />
+        <h3 className="text-2xl font-bold mb-2">Błąd podczas pobierania serwerów</h3>
+        <p className="text-muted-foreground mb-6">{error}</p>
+        <Button onClick={() => window.location.reload()}>Spróbuj ponownie</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Discord Servers</h1>
+          <h1 className="text-3xl font-bold">Twoje serwery Discord</h1>
           <p className="text-muted-foreground">Select a server to manage its settings and knowledge base</p>
         </div>
         <a
@@ -60,6 +168,17 @@ export default function ServerList() {
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Server
         </a>
+      </div>
+
+      {/* Wyszukiwarka */}
+      <div className="relative mb-6">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Szukaj serwerów..."
+          className="pl-10"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
 
       {state.error.servers && (
@@ -91,51 +210,67 @@ export default function ServerList() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {state.servers?.data.map((server) => (
-              <div key={server.id} className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                <div
-                  className={`h-2 w-full rounded-t-lg ${server.active ? "bg-green-500" : "bg-neutral-300 dark:bg-neutral-700"}`}
-                ></div>
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-3 mb-2">
-                    {server.iconUrl ? (
-                      <img
-                        src={server.iconUrl}
-                        alt={server.name}
-                        className="h-10 w-10 rounded-full"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.onerror = null;
-                          target.src = "/images/default-server-icon.png";
-                        }}
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center">
-                        <Server2 className="h-5 w-5 text-neutral-500" />
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {sortedServers.map((server) => (
+              <div
+                key={server.id}
+                className={cn(
+                  "border rounded-lg p-4 transition-all duration-200",
+                  server.has_bot ? "bg-background hover:border-primary cursor-pointer" : "bg-muted/30 border-dashed"
+                )}
+                onClick={() => {
+                  if (server.has_bot) {
+                    window.location.href = `/dashboard/servers/${server.id}`;
+                  }
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Avatar className={cn("h-12 w-12", !server.icon_url && getServerColor(server.id))}>
+                      {server.icon_url ? (
+                        <AvatarImage src={server.icon_url} alt={server.name} />
+                      ) : (
+                        <AvatarFallback>{server.name.charAt(0).toUpperCase()}</AvatarFallback>
+                      )}
+                    </Avatar>
+                    <div>
+                      <h3 className="font-medium text-lg">{server.name}</h3>
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Shield className="h-3 w-3 mr-1" />
+                        <span>Administrator</span>
                       </div>
-                    )}
-                    <h3 className="text-lg font-semibold leading-none tracking-tight">{server.name}</h3>
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-4">{server.active ? "Bot Active" : "Bot Inactive"}</p>
 
-                  <div className="flex flex-col gap-3">
-                    <a
-                      href={`/dashboard/servers/${server.id}/settings`}
-                      className="inline-flex items-center justify-start rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full"
-                    >
-                      <Settings className="mr-2 h-4 w-4" />
-                      Server Settings
-                    </a>
-                    <a
-                      href={`/dashboard/servers/${server.id}/knowledge`}
-                      className="inline-flex items-center justify-start rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full"
-                    >
-                      <BookOpen className="mr-2 h-4 w-4" />
-                      Knowledge Base
-                    </a>
+                  {!server.has_bot && (
+                    <div className="flex flex-col items-end">
+                      <CircleSlashed className="h-5 w-5 text-muted-foreground mb-1" />
+                      <a
+                        href="https://discord.com/api/oauth2/authorize"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Dodaj bota
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {server.has_bot && (
+                  <div className="mt-2 text-right">
+                    <span className="inline-flex items-center justify-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                      Bot aktywny
+                    </span>
                   </div>
-                </CardContent>
+                )}
+
+                {!server.has_bot && (
+                  <div className="mt-4 p-2 bg-muted/50 rounded text-xs text-muted-foreground text-center">
+                    Bot nie jest zainstalowany na tym serwerze
+                  </div>
+                )}
               </div>
             ))}
           </div>

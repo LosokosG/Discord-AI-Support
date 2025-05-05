@@ -1,192 +1,33 @@
 ---
-import DashboardLayout from "@/layouts/DashboardLayout.astro";
-import { DiscordLogoIcon } from "@radix-ui/react-icons";
-import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
-import ServerTabs from "@/components/dashboard/ServerTabs";
-import { supabaseClient } from "@/db/supabase.client";
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import ServerSelector from "../../components/dashboard/ServerSelector";
 import { createSupabaseServerInstance } from "../../db/supabase.server";
 
-// Dodajmy logi diagnostyczne
-const { cookies, request } = Astro;
-console.log("📢 [dashboard/index] Sprawdzam sesję użytkownika");
+// Sprawdź, czy użytkownik jest zalogowany
+const { cookies, redirect } = Astro;
 
-// Sprawdźmy sesję użytkownika
 const supabase = createSupabaseServerInstance({
   cookies,
-  headers: request.headers,
+  headers: Astro.request.headers,
 });
 
-// Pobierz informacje o sesji i użytkowniku
-const { data: sessionData } = await supabase.auth.getSession();
-const { data: userData } = await supabase.auth.getUser();
+const {
+  data: { user },
+} = await supabase.auth.getUser();
 
-console.log("📢 [dashboard/index] Sesja:", sessionData.session ? "Istnieje" : "Brak");
-console.log("📢 [dashboard/index] Użytkownik:", userData.user ? `ID: ${userData.user.id}` : "Niezalogowany");
-
-if (userData.user) {
-  console.log("📢 [dashboard/index] Szczegóły użytkownika:", {
-    email: userData.user.email,
-    id: userData.user.id,
-    metadata: userData.user.user_metadata,
-  });
+if (!user) {
+  return redirect("/auth/login");
 }
 
-// Zdefiniuj typ serwera
-interface ServerItem {
-  id: number | string;
-  name: string;
-  icon_url: string | null;
-  active: boolean;
-  created_at: string;
-  members: number;
-  iconLetter: string;
-  color: string;
-}
-
-// Wyświetl zmienne środowiskowe (tylko podczas debugowania)
-console.log("📢 [dashboard/index] SUPABASE URL:", import.meta.env.PUBLIC_SUPABASE_URL ? "Zdefiniowana" : "Brak");
-console.log(
-  "📢 [dashboard/index] SUPABASE ANON KEY:",
-  import.meta.env.PUBLIC_SUPABASE_ANON_KEY ? "Zdefiniowana" : "Brak"
-);
-
-// Pobierz rzeczywiste serwery bezpośrednio z bazy danych
-let servers: ServerItem[] = [];
-let connectionError = false;
-
-try {
-  if (!import.meta.env.PUBLIC_SUPABASE_URL || !import.meta.env.PUBLIC_SUPABASE_ANON_KEY) {
-    console.error("Brak wymaganych zmiennych środowiskowych dla Supabase");
-    connectionError = true;
-  } else {
-    const { data, error } = await supabaseClient.from("servers").select("id, name, icon_url, active, created_at");
-
-    if (error) {
-      console.error("Error fetching servers:", error);
-      connectionError = true;
-    } else if (data) {
-      // Przygotuj dane serwerów do wyświetlenia
-      servers = data.map((server) => ({
-        id: server.id,
-        name: server.name,
-        icon_url: server.icon_url,
-        active: server.active,
-        created_at: server.created_at,
-        // Generuj placeholder dla liczby członków
-        members: Math.floor(Math.random() * 500) + 50,
-        // Generuj literę ikony z pierwszej litery nazwy serwera
-        iconLetter: server.name.charAt(0).toUpperCase(),
-        // Przypisz losowy kolor z palety Discord
-        color: getRandomDiscordColor(),
-      }));
-    }
-  }
-} catch (err) {
-  console.error("Failed to fetch servers:", err);
-  connectionError = true;
-}
-
-// Funkcja do generowania losowego koloru Discord
-function getRandomDiscordColor() {
-  const colors = [
-    "bg-[#5865F2]", // Discord Blurple
-    "bg-[#57F287]", // Discord Green
-    "bg-[#FEE75C]", // Discord Yellow
-    "bg-[#EB459E]", // Discord Fuchsia
-    "bg-[#ED4245]", // Discord Red
-  ];
-  return colors[Math.floor(Math.random() * colors.length)];
-}
+console.log("📢 [dashboard/index] Szczegóły użytkownika:", {
+  email: user.email,
+  id: user.id,
+  metadata: user.user_metadata,
+});
 ---
 
-<DashboardLayout title="Discord AI Support Dashboard" activeTab="home">
-  <div class="flex flex-col p-8 max-w-6xl mx-auto">
-    {
-      !sessionData.session && (
-        <div class="bg-orange-500/10 text-orange-500 p-3 rounded-md mb-4">
-          <strong>Wykryto problem z sesją!</strong> Nie jesteś zalogowany.
-          <div class="mt-2">
-            <a href="/auth/login" class="underline mr-4">
-              Zaloguj się ponownie
-            </a>
-            <a href="/api/auth/debug-session" target="_blank" class="underline">
-              Sprawdź stan sesji
-            </a>
-          </div>
-        </div>
-      )
-    }
-
-    {
-      sessionData.session && (
-        <div class="bg-green-500/10 text-green-500 p-3 rounded-md mb-4">
-          <strong>Zalogowano pomyślnie!</strong> Sesja aktywna.
-          <div class="mt-2 text-xs">
-            <div>ID: {userData.user?.id}</div>
-            <div>Email: {userData.user?.email}</div>
-            <div>
-              Wygasa:{" "}
-              {sessionData.session.expires_at
-                ? new Date(sessionData.session.expires_at * 1000).toLocaleString()
-                : "brak daty"}
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    <div class="text-center space-y-4 mb-12">
-      <div class="w-24 h-24 bg-primary/10 rounded-full mx-auto flex items-center justify-center mb-6">
-        <DiscordLogoIcon className="w-12 h-12 text-primary" />
-      </div>
-
-      <h1 class="text-4xl font-bold tracking-tight text-white">Welcome to AI Support Bot</h1>
-
-      <p class="text-xl text-discord-text-muted max-w-2xl mx-auto">
-        Select a server to start managing your AI assistant, configure settings, and build your knowledge base.
-      </p>
-
-      {
-        connectionError && (
-          <div class="bg-discord-red/10 text-discord-red p-3 rounded-md mt-4 max-w-xl mx-auto">
-            Unable to connect to the database. Please check your environment variables and try again.
-          </div>
-        )
-      }
-
-      <div
-        class="inline-flex items-center justify-center rounded-full px-4 py-1 text-sm font-medium bg-[#2B2D31] text-white mt-4"
-      >
-        <span class="mr-1 h-2 w-2 rounded-full bg-discord-green"></span>
-        <span>AI Bot is online and ready</span>
-      </div>
-    </div>
-
-    <div class="relative max-w-2xl mx-auto w-full mb-10">
-      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-discord-text-muted" />
-      <input
-        type="text"
-        placeholder="Search servers..."
-        class="bg-[#2B2D31] text-white h-12 pl-12 pr-4 rounded-lg w-full border-none focus:ring-2 focus:ring-[#5865F2]"
-      />
-    </div>
-
-    <div class="w-full">
-      <ServerTabs servers={servers} client:load />
-    </div>
-
-    <div class="mt-8 text-center">
-      <Button asChild className="bg-[#5865F2] hover:bg-[#4752c4] text-white font-medium">
-        <a href="/dashboard/servers/new">
-          <Plus className="mr-2 h-5 w-5" />
-          Add New Server
-        </a>
-      </Button>
-    </div>
+<DashboardLayout title="Panel zarządzania | Discord AI Support Bot">
+  <div class="container mx-auto p-6">
+    <ServerSelector client:load />
   </div>
 </DashboardLayout>
-
-<script>
-  // Client-side JavaScript is no longer needed for the Tabs component // as we're now using the React component with load
-</script>
