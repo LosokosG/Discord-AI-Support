@@ -112,9 +112,13 @@ Rosnące koszty utrzymania zespołów wsparcia oraz powtarzalność znacznej cz�
 ### 3.3 Web Dashboard - Uproszczona wersja MVP
 
 #### 3.3.1 System autentykacji
-- Logowanie przez OAuth Discord
+- Logowanie przez OAuth Discord za pośrednictwem Supabase Auth
 - Dostęp do dashboardu tylko dla osób z uprawnieniami administratora na serwerze Discord
 - Automatyczne wykrywanie serwerów administrowanych przez zalogowanego użytkownika
+- Strona główna (landing page) dostępna publicznie, zawierająca opis produktu i przycisk logowania
+- Wszystkie pozostałe funkcje dashboardu wymagają zalogowania
+- Automatyczne przekierowanie na stronę logowania przy próbie dostępu do chronionych zasobów
+- Przechowywanie tokenów sesji w bezpieczny sposób zgodny z wytycznymi Supabase
 
 #### 3.3.2 Podstawowy interfejs zarządzania serwerami
 - Minimalistyczna lista serwerów administrowanych przez użytkownika
@@ -139,16 +143,17 @@ Rosnące koszty utrzymania zespołów wsparcia oraz powtarzalność znacznej cz�
 
 ### 4.1 Proces konfiguracji bota przez administratora
 
-1. Administrator loguje się do podstawowego dashboardu przez OAuth Discord
-2. System automatycznie wykrywa serwery, gdzie użytkownik ma uprawnienia administratora
-3. Administrator wybiera serwer do skonfigurowania
-4. Administrator przesyła pliki do bazy wiedzy przez prosty interfejs
-5. Administrator konfiguruje podstawowe ustawienia:
+1. Administrator wchodzi na stronę główną (landing page) produktu
+2. Administrator klika przycisk logowania i autentykuje się przez OAuth Discord
+3. System automatycznie wykrywa serwery, gdzie użytkownik ma uprawnienia administratora
+4. Administrator wybiera serwer do skonfigurowania
+5. Administrator przesyła pliki do bazy wiedzy przez prosty interfejs
+6. Administrator konfiguruje podstawowe ustawienia:
    - Wybiera kanały Discord dla działania bota
    - Ustawia rolę do pingowania przy przekazywaniu zgłoszeń
    - Wprowadza podstawowe instrukcje dla AI
-6. Administrator zapisuje konfigurację i aktywuje bota
-7. System potwierdza aktywację bota
+7. Administrator zapisuje konfigurację i aktywuje bota
+8. System potwierdza aktywację bota
 
 ### 4.2 Proces obsługi pytania użytkownika
 
@@ -319,7 +324,9 @@ Rosnące koszty utrzymania zespołów wsparcia oraz powtarzalność znacznej cz�
   - Administrator może dodawać dokumenty do bazy wiedzy (.txt, .md, .pdf).
   - Administrator może przeglądać, aktualizować i usuwać dokumenty w bazie wiedzy.
   - Zmiany w konfiguracji są natychmiast aplikowane do działającego bota.
-  - Funkcjonalność zarządzania konfiguracją jest dostępna tylko dla zalogowanych użytkowników z odpowiednimi uprawnieniami (12).
+  - Wszystkie funkcje zarządzania konfiguracją wymagają wcześniejszego zalogowania.
+  - Dostęp do konfiguracji serwera jest możliwy tylko dla użytkowników z uprawnieniami administratora na danym serwerze.
+  - System automatycznie ogranicza widoczność oraz dostęp do serwerów zgodnie z uprawnieniami użytkownika.
 
 ## 12: Autentykacja przez Discord OAuth
 
@@ -329,8 +336,11 @@ Rosnące koszty utrzymania zespołów wsparcia oraz powtarzalność znacznej cz�
   - Logowanie odbywa się wyłącznie przez OAuth Discord za pośrednictwem Supabase Auth.
   - System automatycznie wykrywa i wyświetla tylko serwery, na których użytkownik ma uprawnienia administratora.
   - Dostęp do dashboardu i jego funkcji jest ograniczony do zalogowanych użytkowników.
+  - Strona główna (landing page) jest jedyną stroną dostępną bez logowania.
+  - Strona główna zawiera opis produktu, jego główne funkcje i wyraźny przycisk logowania.
   - Użytkownik może się wylogować z systemu poprzez przycisk w interfejsie dashboardu.
   - System weryfikuje uprawnienia użytkownika przy każdej akcji modyfikującej konfigurację.
   - Dashboard wyświetla tylko serwery, na których bot jest już zainstalowany i użytkownik ma uprawnienia administratora.
   - System przechowuje tokeny sesji w bezpieczny sposób zgodny z wytycznymi Supabase.
   - Użytkownik jest automatycznie przekierowywany do strony logowania przy próbie dostępu do chronionych zasobów.
+  - Po zalogowaniu użytkownik jest przekierowywany do wcześniej żądanej strony lub do listy serwerów jako domyślnej.
