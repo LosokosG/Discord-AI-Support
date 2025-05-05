@@ -3,13 +3,57 @@ import Layout from "../../layouts/Layout.astro";
 import { LoginButton } from "../../components/auth/LoginButton";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card";
 import { Icons } from "../../components/ui/icons";
+import { createSupabaseServerInstance } from "../../db/supabase.server";
 
-// In a real implementation, we would check if user is already logged in and redirect
-// For now, just creating the UI without any backend logic
+// Check environment variables
+const envCheck = {
+  supabaseUrl: !!import.meta.env.PUBLIC_SUPABASE_URL,
+  supabaseKey: !!import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  discordId: !!import.meta.env.DISCORD_CLIENT_ID,
+  discordSecret: !!import.meta.env.DISCORD_SECRET,
+};
 
-// Get error message from URL params if it exists
+const missingEnv = Object.entries(envCheck)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+const hasEnvIssues = missingEnv.length > 0;
+
+// Sprawdź, czy użytkownik jest już zalogowany
+const { cookies, redirect } = Astro;
+
+const supabase = createSupabaseServerInstance({
+  cookies,
+  headers: Astro.request.headers,
+});
+
+const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+console.log("📢 [login.astro] Sprawdzenie sesji:", session ? "Istnieje" : "Brak");
+console.log("📢 [login.astro] Environment variables:", envCheck);
+
+// Jeśli użytkownik jest zalogowany, przekieruj do dashboardu
+if (session) {
+  return redirect("/dashboard");
+}
+
+// Pobierz komunikat błędu z parametrów URL, jeśli istnieje
 const { searchParams } = new URL(Astro.request.url);
-const errorMessage = searchParams.get("error");
+const errorCode = searchParams.get("error");
+
+// Mapowanie kodów błędów na przyjazne użytkownikowi komunikaty
+const errorMessages: Record<string, string> = {
+  no_code: "Wystąpił błąd podczas autoryzacji. Spróbuj ponownie.",
+  session_creation_failed: "Nie udało się utworzyć sesji. Spróbuj ponownie.",
+  code_exchange_failed: "Weryfikacja autoryzacji nie powiodła się. Spróbuj ponownie.",
+  unexpected_error: "Wystąpił nieoczekiwany błąd. Spróbuj ponownie później.",
+  missing_auth_params: "Brakujące parametry autoryzacji. Spróbuj ponownie.",
+  auth_denied: "Dostęp został odrzucony. Upewnij się, że zaakceptowałeś wszystkie uprawnienia.",
+  token_expired: "Sesja wygasła. Zaloguj się ponownie.",
+};
+
+const errorMessage = errorCode ? errorMessages[errorCode] || errorCode : null;
 ---
 
 <Layout title="Logowanie | Discord Bot">
@@ -28,12 +72,19 @@ const errorMessage = searchParams.get("error");
         </CardHeader>
         <CardContent className="grid gap-4">
           {
-            errorMessage && (
-              <div class="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
-                {errorMessage === "no_code" ? "Wystąpił błąd podczas autoryzacji. Spróbuj ponownie." : errorMessage}
+            hasEnvIssues && (
+              <div class="bg-yellow-500/15 text-yellow-600 text-sm p-3 rounded-md">
+                <strong>Uwaga!</strong> Brakuje następujących zmiennych środowiskowych:
+                <ul class="list-disc ml-5 mt-1">
+                  {missingEnv.map((env) => (
+                    <li>{env}</li>
+                  ))}
+                </ul>
               </div>
             )
           }
+
+          {errorMessage && <div class="bg-destructive/15 text-destructive text-sm p-3 rounded-md">{errorMessage}</div>}
 
           <LoginButton client:load />
 
@@ -70,6 +121,8 @@ const errorMessage = searchParams.get("error");
 
       <div class="text-center text-sm text-muted-foreground">
         <a href="/" class="hover:text-primary underline underline-offset-4"> Powrót do strony głównej </a>
+        <span class="mx-2">|</span>
+        <a href="/debug-session" class="hover:text-primary underline underline-offset-4"> Debug sesji </a>
       </div>
     </div>
   </div>

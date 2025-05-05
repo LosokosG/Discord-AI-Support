@@ -10,7 +10,10 @@ import node from "@astrojs/node";
 export default defineConfig({
   output: "server",
   integrations: [react(), sitemap()],
-  server: { port: 3000 },
+  server: {
+    port: 3000,
+    host: true, // Pozwala na dostęp z innych urządzeń w sieci
+  },
   vite: {
     plugins: [tailwindcss()],
   },

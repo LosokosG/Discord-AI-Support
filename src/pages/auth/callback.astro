@@ -1,0 +1,79 @@
+import Layout from "../../layouts/Layout.astro";
+import { createSupabaseServerInstance } from "../../db/supabase.server";
+
+// Ta strona będzie potrzebna w przypadku bezpośredniego przekierowania z Discord
+// zamiast przez Supabase Auth (np. podczas testów lokalnych)
+
+export const prerender = false;
+
+const { cookies, request } = Astro;
+const url = new URL(request.url);
+const code = url.searchParams.get("code");
+const errorParam = url.searchParams.get("error");
+const errorDescription = url.searchParams.get("error_description");
+
+console.log("📢 [callback.astro] Otrzymany kod autoryzacyjny:", code ? "Tak (otrzymano kod)" : "Nie (brak kodu)");
+console.log("📢 [callback.astro] URL:", url.toString());
+
+// Jeśli otrzymano błąd z Discord OAuth
+if (errorParam) {
+  console.error("📢 [callback.astro] Błąd OAuth:", errorParam, errorDescription);
+  return Astro.redirect(`/auth/login?error=${encodeURIComponent(errorDescription || errorParam)}`);
+}
+
+let user = null;
+let error = null;
+
+if (code) {
+  const supabase = createSupabaseServerInstance({
+    cookies,
+    headers: request.headers,
+  });
+
+  try {
+    console.log("📢 [callback.astro] Próba wymiany kodu na sesję");
+    
+    // Wymień kod na sesję
+    const result = await supabase.auth.exchangeCodeForSession(code);
+    
+    if (result.error) {
+      console.error("📢 [callback.astro] Błąd wymiany kodu:", result.error);
+      error = result.error.message;
+    } else {
+      // Sprawdźmy sesję zaraz po wymianie kodu
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      if (sessionData.session) {
+        console.log("📢 [callback.astro] Sesja utworzona pomyślnie");
+        
+        // Przekieruj do dashboardu
+        return Astro.redirect("/dashboard");
+      } else {
+        console.error("📢 [callback.astro] Brak sesji po wymianie kodu");
+        error = "Nie udało się utworzyć sesji użytkownika";
+      }
+    }
+  } catch (err) {
+    console.error("📢 [callback.astro] Błąd podczas wymiany kodu:", err);
+    error = "Błąd systemu autentykacji";
+  }
+  
+  if (error) {
+    return Astro.redirect(`/auth/login?error=${encodeURIComponent(error)}`);
+  }
+}
+
+<Layout title="Autoryzacja | Discord Bot">
+  <div class="container flex items-center justify-center min-h-[calc(100vh-8rem)] py-8">
+    <div class="text-center">
+      <h1 class="text-2xl font-bold mb-4">Trwa przetwarzanie autoryzacji...</h1>
+      <p class="text-muted-foreground">Przekierowujemy Cię do aplikacji.</p>
+      
+      {code ? (
+        <p class="mt-4">Autoryzacja powiodła się, następuje przekierowanie...</p>
+      ) : (
+        <p class="mt-4 text-destructive">Nie otrzymano kodu autoryzacyjnego. <a href="/auth/login" class="underline">Spróbuj zalogować się ponownie</a>.</p>
+      )}
+    </div>
+  </div>
+</Layout> 

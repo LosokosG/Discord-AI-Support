@@ -1,56 +1,85 @@
 /* eslint-disable no-console */
 import { defineMiddleware } from "astro:middleware";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseServerInstance } from "../db/supabase.server";
 
-const MOCK_USER_ID = "0204e012-5d8f-4ad0-87a4-b94d228fea14";
+// Ścieżki publiczne - endpointy API Auth i strony renderowane na serwerze
+const PUBLIC_PATHS = [
+  // Publiczne strony Astro renderowane na serwerze
+  "/",
+  "/login",
+  "/auth/login",
+  "/auth/callback",
+  "/debug-session",
+  // Endpointy API Auth
+  "/api/auth/login",
+  "/api/auth/callback",
+  "/api/auth/custom-callback",
+  "/api/auth/logout",
+  "/api/auth/me",
+  "/api/auth/debug-session",
+];
 
-export const onRequest = defineMiddleware(async (context, next) => {
+export const onRequest = defineMiddleware(async ({ locals, cookies, url, request, redirect }, next) => {
   // Log the URL to help debug
-  console.log(`${new Date().toISOString().split("T")[1]} [REQUEST] ${context.request.method} ${context.url.pathname}`);
+  console.log(`${new Date().toISOString().split("T")[1]} [REQUEST] ${request.method} ${url.pathname}`);
 
-  // Make sure these values exist in your .env file
-  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-  const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-
-  // Only create client if configuration exists
-  if (supabaseUrl && supabaseKey) {
-    // Create Supabase client with admin rights to bypass RLS for testing
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-      global: {
-        // Use custom header to identify mock user for RLS policies
-        headers: {
-          "X-Mock-User-Id": MOCK_USER_ID,
-        },
-      },
-    });
-
-    context.locals.supabase = supabase;
-
-    // TEMPORARY BYPASS: Mock authenticated user for testing
-    // Remove this in production and implement proper Discord OAuth
-    // Add mock user to locals for testing
-    (context.locals as { user?: { id: string; discord_id: string; discord_username: string; role?: string } }).user = {
-      id: MOCK_USER_ID,
-      discord_id: "123456789012345678",
-      discord_username: "test_user",
-      role: "admin",
-    };
-
-    console.log("TESTING MODE: Authentication bypassed with mock user ID:", MOCK_USER_ID);
-  } else {
-    console.error("Missing Supabase configuration. Check your .env file.");
+  // Debug cookies
+  try {
+    console.log("📢 [middleware] Cookies dostępne:", cookies.toString());
+  } catch (error) {
+    console.log("📢 [middleware] Błąd wypisywania cookies:", error);
   }
 
-  const response = await next();
+  // Check if the current path is in the public paths list
+  const isPublicPath = PUBLIC_PATHS.some((path) => url.pathname === path || url.pathname.endsWith(path + "/"));
 
-  // Log the response status for debugging
-  console.log(
-    `${new Date().toISOString().split("T")[1]} [${response.status}] ${context.url.pathname} ${Date.now() - performance.now()}ms`
-  );
+  if (isPublicPath) {
+    console.log("📢 [middleware] Ścieżka publiczna, pomijam sprawdzanie autentykacji");
+    return next();
+  }
 
-  return response;
+  const supabase = createSupabaseServerInstance({
+    cookies,
+    headers: request.headers,
+  });
+
+  // Dodajemy instancję Supabase do locals
+  locals.supabase = supabase;
+
+  // WAŻNE: Zawsze najpierw pobierz sesję użytkownika przed innymi operacjami
+  const userResponse = await supabase.auth.getUser();
+  const sessionResponse = await supabase.auth.getSession();
+  const user = userResponse.data.user;
+  const session = sessionResponse.data.session;
+
+  console.log("📢 [middleware] Sesja:", session ? "Istnieje" : "Brak");
+  console.log("📢 [middleware] Użytkownik:", user ? `ID: ${user.id}` : "Niezalogowany");
+
+  if (user) {
+    console.log("📢 [middleware] Szczegóły użytkownika:", {
+      email: user.email,
+      id: user.id,
+      metadata: user.user_metadata,
+    });
+
+    // Zapisujemy dane użytkownika w locals
+    locals.user = {
+      id: user.id,
+      email: user.email || undefined,
+      discord_id: user.user_metadata?.discord_id,
+      discord_username: user.user_metadata?.full_name || user.user_metadata?.name,
+    };
+
+    // Dla zalogowanych użytkowników pozwalamy na dostęp do dashboardu
+    if (url.pathname.startsWith("/dashboard")) {
+      console.log("📢 [middleware] Pozwalam na dostęp do dashboardu dla zalogowanego użytkownika");
+      return next();
+    }
+
+    return next();
+  } else {
+    // Przekierowanie do logowania dla chronionych ścieżek
+    console.log("📢 [middleware] Brak zalogowanego użytkownika, przekierowuję do logowania");
+    return redirect("/auth/login");
+  }
 });

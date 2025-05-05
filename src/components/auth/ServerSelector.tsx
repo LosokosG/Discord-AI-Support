@@ -21,40 +21,20 @@ export function ServerSelector() {
   useEffect(() => {
     async function fetchServers() {
       try {
-        // In a real implementation, this would call the actual API endpoint
-        // For now, we'll simulate a delay and return mock data
         setIsLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // Mock server data for UI demonstration
-        const mockServers: DiscordServer[] = [
-          {
-            id: "123456789",
-            name: "Serwer Demo 1",
-            icon: null,
-            owner: true,
-            permissions: "1099511627775", // Admin permission flag
-            hasBot: true,
-          },
-          {
-            id: "987654321",
-            name: "Serwer Demo 2",
-            icon: null,
-            owner: false,
-            permissions: "1099511627775", // Admin permission flag
-            hasBot: false,
-          },
-          {
-            id: "456789123",
-            name: "Serwer Demo 3",
-            icon: null,
-            owner: true,
-            permissions: "0", // No admin permission
-            hasBot: false,
-          },
-        ];
+        // Pobierz listę serwerów z API
+        const response = await fetch("/api/servers/list");
 
-        setServers(mockServers);
+        if (!response.ok) {
+          throw new Error("Nie udało się pobrać listy serwerów");
+        }
+
+        const data = await response.json();
+
+        // Przekształć dane odpowiedzi na format DiscordServer
+        // Zakładamy, że API zwraca tablicę serwerów w odpowiednim formacie
+        setServers(data.guilds || []);
       } catch (error) {
         console.error("Error fetching servers:", error);
         setError("Nie udało się pobrać listy serwerów. Spróbuj ponownie.");
@@ -67,7 +47,7 @@ export function ServerSelector() {
   }, []);
 
   const handleSelectServer = (serverId: string) => {
-    // In a real implementation, this would navigate to the dashboard for this server
+    // W prawdziwej implementacji przekierowanie do dashboardu dla tego serwera
     window.location.href = `/dashboard/${serverId}`;
   };
 
@@ -82,10 +62,8 @@ export function ServerSelector() {
       return `https://cdn.discordapp.com/icons/${server.id}/${server.icon}.png`;
     }
 
-    // Generate a simple color based on the server name for the fallback
-    const nameHash = server.name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
-
-    return null; // Return null to use the AvatarFallback
+    // Zwróć null, aby użyć AvatarFallback
+    return null;
   };
 
   const getServerInitials = (name: string) => {

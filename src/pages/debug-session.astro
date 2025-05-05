@@ -1,0 +1,119 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { createSupabaseServerInstance } from "../db/supabase.server";
+
+export const prerender = false;
+
+const { cookies, request } = Astro;
+const supabase = createSupabaseServerInstance({ cookies, headers: request.headers });
+
+// Get session and user info
+const sessionResponse = await supabase.auth.getSession();
+const userResponse = await supabase.auth.getUser();
+const session = sessionResponse.data.session;
+const user = userResponse.data.user;
+
+// Get cookie info safely
+let cookieNames = [];
+try {
+  const cookieHeader = request.headers.get("cookie") || "";
+  cookieNames = cookieHeader.split(";").map((c) => c.trim().split("=")[0]);
+} catch (error) {
+  console.error("Error parsing cookies:", error);
+}
+
+// Environment variables status
+const envStatus = {
+  PUBLIC_SUPABASE_URL: import.meta.env.PUBLIC_SUPABASE_URL ? "Defined ✅" : "Missing ❌",
+  PUBLIC_SUPABASE_ANON_KEY: import.meta.env.PUBLIC_SUPABASE_ANON_KEY ? "Defined ✅" : "Missing ❌",
+  DISCORD_CLIENT_ID: import.meta.env.DISCORD_CLIENT_ID ? "Defined ✅" : "Missing ❌",
+  DISCORD_SECRET: import.meta.env.DISCORD_SECRET ? "Defined ✅" : "Missing ❌",
+};
+---
+
+<Layout title="Session Debug | Discord Bot">
+  <div class="container max-w-4xl mx-auto p-8">
+    <h1 class="text-3xl font-bold mb-8">Session Debug Page</h1>
+
+    <div class="grid gap-8">
+      <!-- Session Status -->
+      <div class="bg-card rounded-lg p-6 border">
+        <h2 class="text-xl font-semibold mb-4">Session Status</h2>
+        {
+          session ? (
+            <div class="space-y-2">
+              <div class="bg-green-500/10 text-green-500 p-3 rounded-md">
+                <strong>Active Session ✅</strong>
+              </div>
+              <p>
+                <strong>User ID:</strong> {user?.id}
+              </p>
+              <p>
+                <strong>Email:</strong> {user?.email || "Not available"}
+              </p>
+              <p>
+                <strong>Auth Provider:</strong> {user?.app_metadata?.provider || "Not available"}
+              </p>
+              <p>
+                <strong>Expires:</strong>{" "}
+                {session?.expires_at ? new Date(session.expires_at * 1000).toLocaleString() : "Unknown"}
+              </p>
+            </div>
+          ) : (
+            <div class="bg-destructive/10 text-destructive p-3 rounded-md">
+              <strong>No Active Session ❌</strong>
+              <p class="mt-2">You are not currently logged in.</p>
+            </div>
+          )
+        }
+      </div>
+
+      <!-- Cookie Information -->
+      <div class="bg-card rounded-lg p-6 border">
+        <h2 class="text-xl font-semibold mb-4">Cookie Information</h2>
+        <p class="mb-2"><strong>Total Cookies:</strong> {cookieNames.length}</p>
+        <div class="bg-muted p-3 rounded-md max-h-40 overflow-y-auto">
+          <h3 class="font-medium mb-2">Cookie Names:</h3>
+          <ul class="space-y-1 list-disc pl-5">
+            {
+              cookieNames.map((name) => (
+                <li>
+                  {name} {name.startsWith("sb-") ? "(Supabase Auth)" : ""}
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+
+      <!-- Environment Variables -->
+      <div class="bg-card rounded-lg p-6 border">
+        <h2 class="text-xl font-semibold mb-4">Environment Variables</h2>
+        <ul class="space-y-2">
+          {
+            Object.entries(envStatus).map(([key, value]) => (
+              <li>
+                <strong>{key}:</strong> {value}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+
+    <div class="mt-8 flex gap-4">
+      <a
+        href="/auth/login"
+        class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+      >
+        Go to Login
+      </a>
+      <a
+        href="/dashboard"
+        class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/90 h-10 px-4 py-2"
+      >
+        Go to Dashboard
+      </a>
+    </div>
+  </div>
+</Layout>

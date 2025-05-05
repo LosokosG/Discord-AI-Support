@@ -117,7 +117,7 @@ export default function Topbar({
         <div className="absolute left-1/2 top-5 w-8 h-8 rounded-full bg-white/5 animate-float-slowest-reverse"></div>
       </div>
 
-      {/* Right side - Action buttons (with larger text) */}
+      {/* Right side - Action buttons */}
       <div className="hidden md:flex items-center space-x-4 z-10">
         <Button variant="ghost" className="text-white hover:bg-white/20 text-lg h-12 px-6 font-medium">
           Help
@@ -125,7 +125,6 @@ export default function Topbar({
         <Button variant="ghost" className="text-white hover:bg-white/20 text-lg h-12 px-6 font-medium">
           Documentation
         </Button>
-        <Button className="bg-white text-blue-700 hover:bg-white/90 text-lg h-12 px-6 font-medium">Upgrade Plan</Button>
       </div>
     </div>
   );

@@ -9,13 +9,14 @@ import {
 } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { Icons } from "../ui/icons";
+import { Loader2, LogOut, User, LayoutDashboard } from "lucide-react";
 
 interface UserData {
   id: string;
   email?: string;
   avatar_url?: string;
   username?: string;
+  discord_id?: string;
 }
 
 export function UserMenu() {
@@ -26,20 +27,14 @@ export function UserMenu() {
     async function fetchUserData() {
       try {
         setIsLoading(true);
+        const response = await fetch("/api/auth/me");
 
-        // In a real implementation, this would fetch from a real API endpoint
-        // For now, we'll simulate a delay and return mock data
-        await new Promise((resolve) => setTimeout(resolve, 800));
-
-        // Mock user data for UI demonstration
-        const mockUser: UserData = {
-          id: "123456789",
-          email: "user@example.com",
-          username: "ExampleUser",
-          avatar_url: null, // No avatar URL for mock data
-        };
-
-        setUser(mockUser);
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+        } else {
+          setUser(null);
+        }
       } catch (error) {
         console.error("Error fetching user data:", error);
         setUser(null);
@@ -53,34 +48,24 @@ export function UserMenu() {
 
   const handleLogout = async () => {
     try {
-      // In a real implementation, this would call the actual logout API endpoint
-      // For now, we'll just simulate a delay
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
 
-      setIsLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Redirect to home page after logout
-      window.location.href = "/";
+      if (response.ok) {
+        window.location.href = "/";
+      } else {
+        console.error("Logout failed:", await response.text());
+      }
     } catch (error) {
       console.error("Logout error:", error);
-      setIsLoading(false);
     }
-  };
-
-  const getInitials = () => {
-    if (user?.username) {
-      return user.username.charAt(0).toUpperCase();
-    }
-    if (user?.email) {
-      return user.email.charAt(0).toUpperCase();
-    }
-    return "U";
   };
 
   if (isLoading) {
     return (
       <Button variant="ghost" size="sm" disabled>
-        <Icons.spinner className="h-4 w-4 animate-spin" />
+        <Loader2 className="h-4 w-4 animate-spin" />
       </Button>
     );
   }
@@ -93,6 +78,16 @@ export function UserMenu() {
     );
   }
 
+  const getInitials = () => {
+    if (user.username) {
+      return user.username.charAt(0).toUpperCase();
+    }
+    if (user.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -103,7 +98,7 @@ export function UserMenu() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end">
+      <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{user.username || "Użytkownik"}</p>
@@ -112,27 +107,21 @@ export function UserMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <a href="/servers/select">
-            <Icons.serverStack className="mr-2 h-4 w-4" />
-            <span>Zmień serwer</span>
+          <a href="/dashboard" className="flex items-center">
+            <LayoutDashboard className="mr-2 h-4 w-4" />
+            Dashboard
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href="/dashboard">
-            <Icons.dashboard className="mr-2 h-4 w-4" />
-            <span>Dashboard</span>
-          </a>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a href="/profile">
-            <Icons.user className="mr-2 h-4 w-4" />
-            <span>Profil</span>
+          <a href="/profile" className="flex items-center">
+            <User className="mr-2 h-4 w-4" />
+            Profil
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
-          <Icons.logout className="mr-2 h-4 w-4" />
-          <span>Wyloguj się</span>
+        <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer flex items-center">
+          <LogOut className="mr-2 h-4 w-4" />
+          Wyloguj się
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

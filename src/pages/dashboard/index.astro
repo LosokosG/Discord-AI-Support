@@ -5,10 +5,36 @@ import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import ServerTabs from "@/components/dashboard/ServerTabs";
 import { supabaseClient } from "@/db/supabase.client";
+import { createSupabaseServerInstance } from "../../db/supabase.server";
+
+// Dodajmy logi diagnostyczne
+const { cookies, request } = Astro;
+console.log("📢 [dashboard/index] Sprawdzam sesję użytkownika");
+
+// Sprawdźmy sesję użytkownika
+const supabase = createSupabaseServerInstance({
+  cookies,
+  headers: request.headers,
+});
+
+// Pobierz informacje o sesji i użytkowniku
+const { data: sessionData } = await supabase.auth.getSession();
+const { data: userData } = await supabase.auth.getUser();
+
+console.log("📢 [dashboard/index] Sesja:", sessionData.session ? "Istnieje" : "Brak");
+console.log("📢 [dashboard/index] Użytkownik:", userData.user ? `ID: ${userData.user.id}` : "Niezalogowany");
+
+if (userData.user) {
+  console.log("📢 [dashboard/index] Szczegóły użytkownika:", {
+    email: userData.user.email,
+    id: userData.user.id,
+    metadata: userData.user.user_metadata,
+  });
+}
 
 // Zdefiniuj typ serwera
 interface ServerItem {
-  id: number;
+  id: number | string;
   name: string;
   icon_url: string | null;
   active: boolean;
@@ -19,8 +45,11 @@ interface ServerItem {
 }
 
 // Wyświetl zmienne środowiskowe (tylko podczas debugowania)
-console.log("SUPABASE URL:", import.meta.env.PUBLIC_SUPABASE_URL ? "Zdefiniowana" : "Brak");
-console.log("SUPABASE ANON KEY:", import.meta.env.PUBLIC_SUPABASE_ANON_KEY ? "Zdefiniowana" : "Brak");
+console.log("📢 [dashboard/index] SUPABASE URL:", import.meta.env.PUBLIC_SUPABASE_URL ? "Zdefiniowana" : "Brak");
+console.log(
+  "📢 [dashboard/index] SUPABASE ANON KEY:",
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY ? "Zdefiniowana" : "Brak"
+);
 
 // Pobierz rzeczywiste serwery bezpośrednio z bazy danych
 let servers: ServerItem[] = [];
@@ -73,6 +102,40 @@ function getRandomDiscordColor() {
 
 <DashboardLayout title="Discord AI Support Dashboard" activeTab="home">
   <div class="flex flex-col p-8 max-w-6xl mx-auto">
+    {
+      !sessionData.session && (
+        <div class="bg-orange-500/10 text-orange-500 p-3 rounded-md mb-4">
+          <strong>Wykryto problem z sesją!</strong> Nie jesteś zalogowany.
+          <div class="mt-2">
+            <a href="/auth/login" class="underline mr-4">
+              Zaloguj się ponownie
+            </a>
+            <a href="/api/auth/debug-session" target="_blank" class="underline">
+              Sprawdź stan sesji
+            </a>
+          </div>
+        </div>
+      )
+    }
+
+    {
+      sessionData.session && (
+        <div class="bg-green-500/10 text-green-500 p-3 rounded-md mb-4">
+          <strong>Zalogowano pomyślnie!</strong> Sesja aktywna.
+          <div class="mt-2 text-xs">
+            <div>ID: {userData.user?.id}</div>
+            <div>Email: {userData.user?.email}</div>
+            <div>
+              Wygasa:{" "}
+              {sessionData.session.expires_at
+                ? new Date(sessionData.session.expires_at * 1000).toLocaleString()
+                : "brak daty"}
+            </div>
+          </div>
+        </div>
+      )
+    }
+
     <div class="text-center space-y-4 mb-12">
       <div class="w-24 h-24 bg-primary/10 rounded-full mx-auto flex items-center justify-center mb-6">
         <DiscordLogoIcon className="w-12 h-12 text-primary" />

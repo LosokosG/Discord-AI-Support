@@ -3,10 +3,27 @@ import Layout from "../../layouts/Layout.astro";
 import { ServerSelector } from "../../components/auth/ServerSelector";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Icons } from "../../components/ui/icons";
+import { createSupabaseServerInstance } from "../../db/supabase.server";
 
-// In a real implementation, we would check if user is already logged in
-// and redirect to login if not authenticated
-// For now, just creating the UI without any backend logic
+// Sprawdź, czy użytkownik jest zalogowany
+const { cookies, redirect } = Astro;
+
+const supabase = createSupabaseServerInstance({
+  cookies,
+  headers: Astro.request.headers,
+});
+
+const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+// Jeśli użytkownik nie jest zalogowany, przekieruj do strony logowania
+if (!session) {
+  return redirect("/auth/login");
+}
+
+// W przyszłości możemy dodać pobieranie uprawnień użytkownika na serwerach Discord
+// i zapisanie ich w locals lub przekazanie do komponentu ServerSelector
 ---
 
 <Layout title="Wybierz serwer | Discord Bot">
@@ -33,8 +50,9 @@ import { Icons } from "../../components/ui/icons";
           <li>Posiadasz uprawnienia administratora na serwerze</li>
           <li>Zalogowałeś się na odpowiednie konto Discord</li>
           <li>
-            <a href="/api/auth/logout" class="text-primary hover:underline">Wyloguj się</a> i zaloguj ponownie na poprawne
-            konto
+            <form method="POST" action="/api/auth/logout" class="inline">
+              <button type="submit" class="text-primary hover:underline">Wyloguj się</button>
+            </form> i zaloguj ponownie na poprawne konto
           </li>
         </ul>
       </div>

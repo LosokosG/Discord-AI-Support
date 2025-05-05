@@ -14,11 +14,13 @@ import {
   ChevronDown,
   Search,
   PlusCircle,
+  LogOut,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabaseClient } from "@/db/supabase.client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Dostosowany typ Server do użycia w komponencie
 interface ServerItem {
@@ -30,6 +32,15 @@ interface ServerItem {
   iconLetter?: string;
   color?: string;
   created_at?: string;
+}
+
+// Typ dla danych użytkownika
+interface UserData {
+  id: string;
+  email?: string;
+  avatar_url?: string;
+  username?: string;
+  discord_id?: string;
 }
 
 // Types for navigation items
@@ -53,6 +64,8 @@ export default function Sidebar({ className, serverId }: SidebarProps) {
   const [isServerSelectorOpen, setIsServerSelectorOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<UserData | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
 
   // Wypisz ID serwera do celów debugowania
   console.log("Sidebar component - Server ID prop:", serverId);
@@ -133,6 +146,32 @@ export default function Sidebar({ className, serverId }: SidebarProps) {
     },
   ];
 
+  // Pobierz dane zalogowanego użytkownika
+  useEffect(() => {
+    async function fetchUserData() {
+      try {
+        setUserLoading(true);
+        const response = await fetch("/api/auth/me");
+
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+          console.log("User data loaded in sidebar:", userData);
+        } else {
+          console.error("Failed to load user data:", await response.text());
+          setUser(null);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        setUser(null);
+      } finally {
+        setUserLoading(false);
+      }
+    }
+
+    fetchUserData();
+  }, []);
+
   useEffect(() => {
     // Pobierz rzeczywiste dane serwerów z bazy danych
     const fetchServers = async () => {
@@ -197,6 +236,34 @@ export default function Sidebar({ className, serverId }: SidebarProps) {
   // Close the popover when a server is selected
   const closeServerSelector = () => {
     setIsServerSelectorOpen(false);
+  };
+
+  // Obsługa wylogowania
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        window.location.href = "/";
+      } else {
+        console.error("Logout failed:", await response.text());
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  // Funkcja pomocnicza do pobrania inicjałów użytkownika
+  const getUserInitials = () => {
+    if (user?.username) {
+      return user.username.charAt(0).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return "U";
   };
 
   return (
@@ -318,14 +385,41 @@ export default function Sidebar({ className, serverId }: SidebarProps) {
       </nav>
 
       <div className="px-6 pt-6 mt-auto">
-        <div className="flex items-center gap-5 px-5 py-5 bg-[#2b2d31] rounded-xl shadow-lg">
-          <div className="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center shadow-md">
-            <span className="font-bold text-xl">U</span>
-          </div>
-          <div>
-            <p className="font-semibold text-xl">Username</p>
-            <p className="text-base text-blue-300">Admin</p>
-          </div>
+        <div className="flex items-center justify-between px-5 py-5 bg-[#2b2d31] rounded-xl shadow-lg">
+          {userLoading ? (
+            <div className="w-full flex justify-center">
+              <div className="h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : user ? (
+            <>
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12 rounded-full">
+                  <AvatarImage src={user.avatar_url || ""} alt={user.username || user.email || ""} />
+                  <AvatarFallback className="bg-blue-600">{getUserInitials()}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold text-lg">{user.username || "User"}</p>
+                  <p className="text-sm text-blue-300">{user.email || "Discord User"}</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                className="h-10 w-10 rounded-full hover:bg-red-500/20 text-red-400 hover:text-red-300"
+              >
+                <LogOut className="h-5 w-5" />
+                <span className="sr-only">Wyloguj się</span>
+              </Button>
+            </>
+          ) : (
+            <div className="text-center w-full">
+              <p className="text-lg text-gray-400">Nie zalogowano</p>
+              <a href="/auth/login" className="text-blue-400 hover:text-blue-300 text-sm mt-1 inline-block">
+                Zaloguj się
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </aside>

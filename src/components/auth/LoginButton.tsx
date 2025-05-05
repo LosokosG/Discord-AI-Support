@@ -19,7 +19,7 @@ export function LoginButton({ redirectTo }: LoginButtonProps) {
         searchParams.set("redirect_to", redirectTo);
       }
 
-      // In a real implementation, this would redirect to the actual login API endpoint
+      // Przekierowanie do endpoint API logowania przez Discord OAuth
       const loginUrl = `/api/auth/login?${searchParams.toString()}`;
       window.location.href = loginUrl;
     } catch (error) {
