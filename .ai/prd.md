@@ -309,30 +309,28 @@ Rosnące koszty utrzymania zespołów wsparcia oraz powtarzalność znacznej cz�
    - Komunikuje się z centralnym Shard Managerem
    - Raportuje swoją wydajność i obciążenie
 
-   // project-prd.md
+## 11: Zarządzanie konfiguracją bota i bazą wiedzy
 
-## US-003: Kolekcje reguł
+- **Tytuł**: Zarządzanie konfiguracją bota i bazą wiedzy
+- **Opis**: Jako administrator serwera Discord chcę móc zarządzać konfiguracją bota oraz bazą wiedzy, aby zapewnić efektywne działanie systemu wsparcia AI.
+- **Kryteria akceptacji**:
+  - Administrator może edytować konfigurację bota (kanały, role, instrukcje AI, limity) dla każdego administrowanego serwera.
+  - Administrator może przeglądać aktualną konfigurację serwera w dashboardzie.
+  - Administrator może dodawać dokumenty do bazy wiedzy (.txt, .md, .pdf).
+  - Administrator może przeglądać, aktualizować i usuwać dokumenty w bazie wiedzy.
+  - Zmiany w konfiguracji są natychmiast aplikowane do działającego bota.
+  - Funkcjonalność zarządzania konfiguracją jest dostępna tylko dla zalogowanych użytkowników z odpowiednimi uprawnieniami (12).
 
-- Tytuł: Kolekcje reguł
-- Opis: Jako użytkownik chcę móc zapisywać i edytować zestawy reguł, aby szybko wykorzystywać sprawdzone rozwiązania w różnych projektach.
-- Kryteria akceptacji:
-  - Użytkownik może zapisać aktualny zestaw reguł (US-001) jako kolekcję (nazwa, opis, reguły).
-  - Użytkownik może aktualizować kolekcję.
-  - Użytkownik może usunąć kolekcję.
-  - Użytkownik może przywrócić kolekcję do poprzedniej wersji (pending changes).
-  - Funkcjonalność kolekcji nie jest dostępna bez logowania się do systemu (US-004).
+## 12: Autentykacja przez Discord OAuth
 
-## US-004: Bezpieczny dostęp i uwierzytelnianie
-
-- Tytuł: Bezpieczny dostęp
-- Opis: Jako użytkownik chcę mieć możliwość rejestracji i logowania się do systemu w sposób zapewniający bezpieczeństwo moich danych.
-- Kryteria akceptacji:
-  - Logowanie i rejestracja odbywają się na dedykowanych stronach.
-  - Logowanie wymaga podania adresu email i hasła.
-  - Rejestracja wymaga podania adresu email, hasła i potwierdzenia hasła.
-  - Użytkownik MOŻE korzystać z tworzenia reguł "ad-hoc" bez logowania się do systemu (US-001).
-  - Użytkownik NIE MOŻE korzystać z funkcji Kolekcji bez logowania się do systemu (US-003).
-  - Użytkownik może logować się do systemu poprzez przycisk w prawym górnym rogu.
-  - Użytkownik może się wylogować z systemu poprzez przycisk w prawym górnym rogu w głównym @Layout.astro.
-  - Nie korzystamy z zewnętrznych serwisów logowania (np. Google, GitHub).
-  - Odzyskiwanie hasła powinno być możliwe.
+- **Tytuł**: Autentykacja przez Discord OAuth
+- **Opis**: Jako użytkownik dashboardu administracyjnego chcę móc logować się do systemu przez Discord, aby uzyskać bezpieczny dostęp do zarządzania botem tylko dla serwerów, których jestem administratorem.
+- **Kryteria akceptacji**:
+  - Logowanie odbywa się wyłącznie przez OAuth Discord za pośrednictwem Supabase Auth.
+  - System automatycznie wykrywa i wyświetla tylko serwery, na których użytkownik ma uprawnienia administratora.
+  - Dostęp do dashboardu i jego funkcji jest ograniczony do zalogowanych użytkowników.
+  - Użytkownik może się wylogować z systemu poprzez przycisk w interfejsie dashboardu.
+  - System weryfikuje uprawnienia użytkownika przy każdej akcji modyfikującej konfigurację.
+  - Dashboard wyświetla tylko serwery, na których bot jest już zainstalowany i użytkownik ma uprawnienia administratora.
+  - System przechowuje tokeny sesji w bezpieczny sposób zgodny z wytycznymi Supabase.
+  - Użytkownik jest automatycznie przekierowywany do strony logowania przy próbie dostępu do chronionych zasobów.
