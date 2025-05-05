@@ -1,0 +1,1532 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Integracja Autentykacji Discord OAuth z Supabase
+
+Użyj tego przewodnika do wprowadzenia autentykacji Discord OAuth w aplikacjach Astro wykorzystujących Supabase jako backend.
+
+## Zanim zaczniemy
+
+BARDZO WAŻNE: Ustal, które strony lub komponenty powinny zachowywać się inaczej po wprowadzeniu autentykacji. Dostosuj dalsze kroki odpowiednio.
+
+## Podstawowe wymagania
+
+1. Użyj pakietu `@supabase/ssr` (NIE auth-helpers)
+2. Używaj WYŁĄCZNIE `getAll` i `setAll` do zarządzania ciasteczkami
+3. NIGDY nie używaj pojedynczych metod `get`, `set` lub `remove` dla ciasteczek
+4. Zaimplementuj odpowiednie zarządzanie sesją z middleware bazującym na JWT (Supabase Auth)
+5. Skonfiguruj aplikację w Discord Developer Portal z odpowiednimi uprawnieniami OAuth
+
+## Instalacja
+
+```bash
+npm install @supabase/ssr @supabase/supabase-js discord.js
+```
+
+## Zmienne środowiskowe
+
+Utwórz plik `.env` z wymaganymi danymi uwierzytelniającymi Supabase i Discord (na podstawie poniższego fragmentu lub `.env.example` w katalogu głównym projektu)
+
+```env
+SUPABASE_URL=adres_url_twojego_projektu
+SUPABASE_KEY=twój_klucz_anonimowy
+DISCORD_CLIENT_ID=id_twojej_aplikacji_discord
+DISCORD_CLIENT_SECRET=sekret_twojej_aplikacji_discord
+```
+
+Dla lepszej obsługi TypeScript, utwórz lub zaktualizuj `src/env.d.ts`:
+
+```typescript
+/// <reference types="astro/client" />
+interface ImportMetaEnv {
+  readonly SUPABASE_URL: string;
+  readonly SUPABASE_KEY: string;
+  readonly DISCORD_CLIENT_ID: string;
+  readonly DISCORD_CLIENT_SECRET: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+```
+
+Zawsze aktualizuj `src/env.d.ts` przy wprowadzaniu nowych zmiennych środowiskowych lub wartości przechowywanych w Astro.locals.
+
+Upewnij się, że `.env.example` jest zaktualizowany o odpowiednie zmienne środowiskowe.
+
+## Kroki implementacji
+
+### 1. Konfiguracja aplikacji Discord
+
+#### 1.1 Utworzenie aplikacji Discord
+
+- Przejdź do [Discord Developer Portal](mdc:https:/discord.com/developers/applications)
+- Kliknij przycisk "New Application" i nadaj nazwę swojej aplikacji
+- Zapisz Client ID oraz Client Secret, które będą potrzebne do konfiguracji Supabase Auth
+
+#### 1.2 Konfiguracja OAuth2
+
+- W sekcji OAuth2 dodaj URL callback dla Supabase Auth:
+  - Format URL: `https://<project-ref>.supabase.co/auth/v1/callback`
+  - Dodaj również URL dla lokalnego środowiska deweloperskiego: `http://localhost:3000/api/auth/callback`
+- Wybierz wymagane zakresy (scopes) OAuth2:
+  - `identify` - umożliwia dostęp do podstawowych informacji o użytkowniku
+  - `guilds` - umożliwia dostęp do listy serwerów użytkownika
+  - `email` - umożliwia dostęp do adresu email użytkownika (opcjonalnie)
+
+### 2. Utwórz lub rozszerz instancję Supabase Server
+
+Zaktualizuj istniejącego klienta Supabase lub utwórz nowy w `src/db/supabase.client.ts`:
+
+```typescript
+import type { AstroCookies } from 'astro';
+import { createServerClient, type CookieOptionsWithName } from '@supabase/ssr';
+import type { Database } from '../db/database.types.ts';
+
+export const cookieOptions: CookieOptionsWithName = {
+  path: '/',
+  secure: true,
+  httpOnly: true,
+  sameSite: 'lax',
+};
+
+function parseCookieHeader(cookieHeader: string): { name: string; value: string }[] {
+  return cookieHeader.split(';').map((cookie) => {
+    const [name, ...rest] = cookie.trim().split('=');
+    return { name, value: rest.join('=') };
+  });
+}
+
+export const createSupabaseServerInstance = (context: {
+  headers: Headers;
+  cookies: AstroCookies;
+}) => {
+  const supabase = createServerClient<Database>(
+    import.meta.env.SUPABASE_URL,
+    import.meta.env.SUPABASE_KEY,
+    {
+      cookieOptions,
+      cookies: {
+        getAll() {
+          return parseCookieHeader(context.headers.get('Cookie') ?? '');
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            context.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+
+  return supabase;
+};
+```
+
+### 3. Zaimplementuj lub rozszerz middleware autentykacji
+
+Zaktualizuj istniejące middleware autentykacji lub utwórz nowe w `src/middleware/index.ts`:
+
+```typescript
+import { createSupabaseServerInstance } from '../db/supabase.client.ts';
+import { defineMiddleware } from 'astro:middleware';
+
+// Ścieżki publiczne - endpointy API Auth i strony renderowane na serwerze
+const PUBLIC_PATHS = [
+  // Publiczne strony Astro renderowane na serwerze
+  "/",
+  "/login",
+  "/auth/login",
+  "/auth/register",
+  // Endpointy API Auth
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/callback",
+  "/api/auth/logout",
+];
+
+export const onRequest = defineMiddleware(
+  async ({ locals, cookies, url, request, redirect }, next) => {
+    // Pomijaj sprawdzanie autentykacji dla ścieżek publicznych
+    if (PUBLIC_PATHS.includes(url.pathname)) {
+      return next();
+    }
+
+    const supabase = createSupabaseServerInstance({
+      cookies,
+      headers: request.headers,
+    });
+
+    // WAŻNE: Zawsze najpierw pobierz sesję użytkownika przed innymi operacjami
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      locals.user = {
+        email: user.email,
+        id: user.id,
+      };
+    } else if (!PUBLIC_PATHS.includes(url.pathname)) {
+      // Przekierowanie do logowania dla chronionych ścieżek
+      return redirect('/auth/login');
+    }
+
+    return next();
+  },
+);
+```
+
+### 4. Utwórz endpointy API autentykacji
+
+Utwórz następujące endpointy w `src/pages/api/auth/`:
+
+```typescript
+// src/pages/api/auth/login.ts
+import type { APIRoute } from 'astro';
+import { createSupabaseServerInstance } from '../../../db/supabase.client.ts';
+
+export const GET: APIRoute = async ({ request, cookies, redirect }) => {
+  const supabase = createSupabaseServerInstance({ cookies, headers: request.headers });
+  
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'discord',
+    options: {
+      redirectTo: new URL('/api/auth/callback', request.url).toString(),
+      scopes: 'identify email guilds',
+    }
+  });
+
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
+  }
+
+  return redirect(data.url);
+};
+
+// src/pages/api/auth/callback.ts
+export const GET: APIRoute = async ({ request, cookies, redirect }) => {
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get('code');
+  
+  if (!code) {
+    return redirect('/auth/login?error=no_code');
+  }
+
+  const supabase = createSupabaseServerInstance({ cookies, headers: request.headers });
+  
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error) {
+    return redirect(`/auth/login?error=${error.message}`);
+  }
+
+  // Po udanym zalogowaniu, przekieruj do strony wyboru serwera
+  return redirect('/servers/select');
+};
+
+// src/pages/api/auth/logout.ts
+export const POST: APIRoute = async ({ cookies, request, redirect }) => {
+  const supabase = createSupabaseServerInstance({ cookies, headers: request.headers });
+
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
+  }
+
+  return redirect('/');
+};
+
+// src/pages/api/servers/list.ts
+export const GET: APIRoute = async ({ cookies, request }) => {
+  const supabase = createSupabaseServerInstance({ cookies, headers: request.headers });
+  
+  // Pobierz aktualną sesję użytkownika
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+    });
+  }
+  
+  // Pobierz token dostępu Discord z sesji
+  const providerToken = session.provider_token;
+  
+  if (!providerToken) {
+    return new Response(JSON.stringify({ error: 'No Discord token available' }), {
+      status: 400,
+    });
+  }
+  
+  try {
+    // Pobierz listę serwerów użytkownika z API Discord
+    const response = await fetch('https://discord.com/api/users/@me/guilds', {
+      headers: {
+        Authorization: `Bearer ${providerToken}`,
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Discord API error: ${response.statusText}`);
+    }
+    
+    const guilds = await response.json();
+    
+    // Filtruj serwery, na których użytkownik ma uprawnienia administratora
+    const adminGuilds = guilds.filter(guild => {
+      const permissions = BigInt(guild.permissions);
+      const adminPermission = BigInt(1 << 3); // ADMINISTRATOR permission
+      return (permissions & adminPermission) === adminPermission;
+    });
+    
+    return new Response(JSON.stringify({ guilds: adminGuilds }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching Discord guilds:', error);
+    return new Response(JSON.stringify({ error: 'Failed to fetch Discord servers' }), {
+      status: 500,
+    });
+  }
+};
+```
+
+### 5. Utwórz komponenty React dla autentykacji
+
+#### 5.1 LoginButton.tsx - `/src/components/auth/LoginButton.tsx`
+
+```typescript
+import { useState } from 'react';
+import { Button } from '../ui/button';
+import { Icons } from '../ui/icons';
+
+interface LoginButtonProps {
+  redirectTo?: string;
+}
+
+export function LoginButton({ redirectTo }: LoginButtonProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Przekierowanie do API logowania Discord
+      const searchParams = new URLSearchParams();
+      if (redirectTo) {
+        searchParams.set('redirect_to', redirectTo);
+      }
+      
+      const loginUrl = `/api/auth/login?${searchParams.toString()}`;
+      window.location.href = loginUrl;
+    } catch (error) {
+      console.error('Login error:', error);
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Button 
+      onClick={handleLogin} 
+      disabled={isLoading}
+      className="w-full"
+    >
+      {isLoading ? (
+        <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+      ) : (
+        <Icons.discord className="mr-2 h-4 w-4" />
+      )}
+      Zaloguj przez Discord
+    </Button>
+  );
+}
+```
+
+#### 5.2 ServerSelector.tsx - `/src/components/auth/ServerSelector.tsx`
+
+```typescript
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Skeleton } from '../ui/skeleton';
+import { Icons } from '../ui/icons';
+
+interface DiscordServer {
+  id: string;
+  name: string;
+  icon: string | null;
+  owner: boolean;
+  permissions: string;
+}
+
+export function ServerSelector() {
+  const [servers, setServers] = useState<DiscordServer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetchServers() {
+      try {
+        const response = await fetch('/api/servers/list');
+        if (!response.ok) {
+          throw new Error('Nie udało się pobrać listy serwerów');
+        }
+        
+        const data = await response.json();
+        setServers(data.guilds);
+      } catch (error) {
+        console.error('Error fetching servers:', error);
+        setError('Nie udało się pobrać listy serwerów. Spróbuj ponownie.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchServers();
+  }, []);
+
+  const handleSelectServer = (serverId: string) => {
+    navigate(`/dashboard/${serverId}`);
+  };
+
+  const getServerIcon = (server: DiscordServer) => {
+    if (server.icon) {
+      return `https://cdn.discordapp.com/icons/${server.id}/${server.icon}.png`;
+    }
+    
+    // Domyślny awatar dla serwerów bez ikony
+    return '/discord-default.png';
+  };
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-4">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-red-500">Błąd</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>{error}</p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            className="mt-4"
+          >
+            Spróbuj ponownie
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (servers.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Brak dostępnych serwerów</CardTitle>
+          <CardDescription>
+            Nie znaleziono serwerów, na których masz uprawnienia administratora.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => window.location.href = '/'}>
+            Powrót do strony głównej
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid gap-4">
+      <h2 className="text-2xl font-bold">Wybierz serwer Discord</h2>
+      <p className="text-muted-foreground">
+        Poniżej znajdują się serwery, na których masz uprawnienia administratora.
+      </p>
+      
+      <div className="grid gap-3 mt-4">
+        {servers.map((server) => (
+          <Button
+            key={server.id}
+            variant="outline"
+            className="flex items-center justify-between w-full p-4 h-auto"
+            onClick={() => handleSelectServer(server.id)}
+          >
+            <div className="flex items-center">
+              <img 
+                src={getServerIcon(server)} 
+                alt={server.name}
+                className="w-8 h-8 rounded-full mr-3"
+              />
+              <span>{server.name}</span>
+            </div>
+            <Icons.chevronRight className="h-4 w-4" />
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+#### 5.3 UserMenu.tsx - `/src/components/auth/UserMenu.tsx`
+
+```typescript
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
+import { Button } from '../ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Icons } from '../ui/icons';
+
+interface UserData {
+  id: string;
+  email: string;
+  avatar_url?: string;
+  username?: string;
+}
+
+export function UserMenu() {
+  const [user, setUser] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchUserData() {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchUserData();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Button variant="ghost" size="sm" disabled>
+        <Icons.spinner className="h-4 w-4 animate-spin" />
+      </Button>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Button asChild size="sm">
+        <Link to="/auth/login">
+          Zaloguj się
+        </Link>
+      </Button>
+    );
+  }
+
+  const getInitials = () => {
+    if (user.username) {
+      return user.username.charAt(0).toUpperCase();
+    }
+    if (user.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Avatar className="h-8 w-8">
+            <AvatarImage 
+              src={user.avatar_url || ''} 
+              alt={user.username || user.email || ''}
+            />
+            <AvatarFallback>{getInitials()}</AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">
+              {user.username || 'Użytkownik'}
+            </p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {user.email}
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/servers/select">
+            Zmień serwer
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/dashboard">
+            Dashboard
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/profile">
+            Profil
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+          Wyloguj się
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+```
+
+### 6. Skonfiguruj Supabase do obsługi Discord OAuth
+
+#### 6.1 Konfiguracja w panelu Supabase
+
+1. Przejdź do panelu Supabase dla twojego projektu
+2. W lewym menu bocznym kliknij ikonę "Authentication" (blisko góry)
+3. Kliknij "Providers" w sekcji Configuration
+4. Kliknij na "Discord" na rozwijanej liście accordion, aby rozwinąć i włącz "Discord Enabled"
+5. Wprowadź swoje **Discord Client ID** i **Discord Client Secret** zapisane w poprzednim kroku
+6. Kliknij "Save"
+
+### 7. Zaimplementuj strony Astro dla autentykacji
+
+#### 7.1 Strona logowania - `/src/pages/auth/login.astro`
+
+```astro
+---
+import Layout from '../../layouts/Layout.astro';
+import { LoginButton } from '../../components/auth/LoginButton';
+
+// Sprawdź, czy użytkownik jest już zalogowany
+const { cookies, redirect } = Astro;
+import { createSupabaseServerInstance } from '../../db/supabase.client';
+
+const supabase = createSupabaseServerInstance({
+  cookies,
+  headers: Astro.request.headers,
+});
+
+const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+// Jeśli użytkownik jest zalogowany, przekieruj do wyboru serwera
+if (session) {
+  return redirect('/servers/select');
+}
+
+// Pobierz komunikat błędu z parametrów URL, jeśli istnieje
+const { searchParams } = new URL(Astro.request.url);
+const errorMessage = searchParams.get('error');
+---
+
+<Layout title="Logowanie | Discord Bot">
+  <div class="container flex items-center justify-center min-h-screen py-12">
+    <div class="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+      <div class="flex flex-col space-y-2 text-center">
+        <h1 class="text-2xl font-semibold tracking-tight">Zaloguj się</h1>
+        <p class="text-sm text-muted-foreground">
+          Zaloguj się przez Discord, aby zarządzać swoim botem
+        </p>
+        
+        {errorMessage && (
+          <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-4" role="alert">
+            <span class="block sm:inline">{errorMessage}</span>
+          </div>
+        )}
+      </div>
+      
+      <div class="grid gap-6">
+        <LoginButton client:load />
+      </div>
+      
+      <p class="px-8 text-center text-sm text-muted-foreground">
+        Logując się, akceptujesz nasze 
+        <a href="/terms" class="underline underline-offset-4 hover:text-primary">
+          Warunki korzystania
+        </a>
+        oraz
+        <a href="/privacy" class="underline underline-offset-4 hover:text-primary">
+          Politykę prywatności
+        </a>.
+      </p>
+    </div>
+  </div>
+</Layout>
+```
+
+#### 7.2 Strona wyboru serwera - `/src/pages/servers/select.astro`
+
+```astro
+---
+import Layout from '../../layouts/Layout.astro';
+import { ServerSelector } from '../../components/auth/ServerSelector';
+
+// Sprawdź, czy użytkownik jest zalogowany
+const { cookies, redirect } = Astro;
+import { createSupabaseServerInstance } from '../../db/supabase.client';
+
+const supabase = createSupabaseServerInstance({
+  cookies,
+  headers: Astro.request.headers,
+});
+
+const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+// Jeśli użytkownik nie jest zalogowany, przekieruj do strony logowania
+if (!session) {
+  return redirect('/auth/login');
+}
+---
+
+<Layout title="Wybierz serwer | Discord Bot">
+  <div class="container mx-auto py-12 max-w-md">
+    <ServerSelector client:load />
+  </div>
+</Layout>
+```
+
+### 8. Rozwiązywanie problemów
+
+#### 8.1 Discord OAuth nie działa poprawnie
+- Upewnij się, że URL callback w Discord Developer Portal jest poprawnie skonfigurowany
+- Sprawdź, czy Client ID i Client Secret są poprawnie wprowadzone w ustawieniach Supabase
+- Sprawdź, czy zakresy OAuth są poprawnie skonfigurowane (identify, guilds, email)
+
+#### 8.2 Problemy z sesją
+- Upewnij się, że używasz `getAll` i `setAll` do zarządzania ciasteczkami, a nie pojedynczych metod
+- Sprawdź, czy middleware jest poprawnie skonfigurowane
+
+#### 8.3 Problemy z pobieraniem serwerów Discord
+- Upewnij się, że masz zakres `guilds` w konfiguracji OAuth
+- Sprawdź, czy token dostępu Discord jest poprawnie przechowywany i używany
+- Upewnij się, że wykonujesz zapytania do API Discord z odpowiednimi nagłówkami autoryzacji
+
+## Zasoby
+
+* [Dokumentacja Supabase Auth](mdc:https:/supabase.com/docs/guides/auth)
+* [Dokumentacja Discord Developer Portal](mdc:https:/discord.com/developers/docs)
+* [Dokumentacja Discord OAuth2](mdc:https:/discord.com/developers/docs/topics/oauth2)
+* [Dokumentacja Discord.js](mdc:https:/discord.js.org)
+* [Astro SSR i middleware](mdc:https:/docs.astro.build/en/guides/server-side-rendering)
+</zmodyfikowany_plik>
+
+<zmodyfikowany_plik>
+# Integracja Autentykacji Discord OAuth z Supabase
+
+Użyj tego przewodnika do wprowadzenia autentykacji Discord OAuth w aplikacjach Astro wykorzystujących Supabase jako backend.
+
+## Zanim zaczniemy
+
+BARDZO WAŻNE: Ustal, które strony lub komponenty powinny zachowywać się inaczej po wprowadzeniu autentykacji. Dostosuj dalsze kroki odpowiednio.
+
+## Podstawowe wymagania
+
+1. Użyj pakietu `@supabase/ssr` (NIE auth-helpers)
+2. Używaj WYŁĄCZNIE `getAll` i `setAll` do zarządzania ciasteczkami
+3. NIGDY nie używaj pojedynczych metod `get`, `set` lub `remove` dla ciasteczek
+4. Zaimplementuj odpowiednie zarządzanie sesją z middleware bazującym na JWT (Supabase Auth)
+5. Skonfiguruj aplikację w Discord Developer Portal z odpowiednimi uprawnieniami OAuth
+
+## Instalacja
+
+```bash
+npm install @supabase/ssr @supabase/supabase-js discord.js
+```
+
+## Zmienne środowiskowe
+
+Utwórz plik `.env` z wymaganymi danymi uwierzytelniającymi Supabase i Discord (na podstawie poniższego fragmentu lub `.env.example` w katalogu głównym projektu)
+
+```env
+SUPABASE_URL=adres_url_twojego_projektu
+SUPABASE_KEY=twój_klucz_anonimowy
+DISCORD_CLIENT_ID=id_twojej_aplikacji_discord
+DISCORD_CLIENT_SECRET=sekret_twojej_aplikacji_discord
+```
+
+Dla lepszej obsługi TypeScript, utwórz lub zaktualizuj `src/env.d.ts`:
+
+```typescript
+/// <reference types="astro/client" />
+interface ImportMetaEnv {
+  readonly SUPABASE_URL: string;
+  readonly SUPABASE_KEY: string;
+  readonly DISCORD_CLIENT_ID: string;
+  readonly DISCORD_CLIENT_SECRET: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+```
+
+Zawsze aktualizuj `src/env.d.ts` przy wprowadzaniu nowych zmiennych środowiskowych lub wartości przechowywanych w Astro.locals.
+
+Upewnij się, że `.env.example` jest zaktualizowany o odpowiednie zmienne środowiskowe.
+
+## Kroki implementacji
+
+### 1. Konfiguracja aplikacji Discord
+
+#### 1.1 Utworzenie aplikacji Discord
+
+- Przejdź do [Discord Developer Portal](mdc:https:/discord.com/developers/applications)
+- Kliknij przycisk "New Application" i nadaj nazwę swojej aplikacji
+- Zapisz Client ID oraz Client Secret, które będą potrzebne do konfiguracji Supabase Auth
+
+#### 1.2 Konfiguracja OAuth2
+
+- W sekcji OAuth2 dodaj URL callback dla Supabase Auth:
+  - Format URL: `https://<project-ref>.supabase.co/auth/v1/callback`
+  - Dodaj również URL dla lokalnego środowiska deweloperskiego: `http://localhost:3000/api/auth/callback`
+- Wybierz wymagane zakresy (scopes) OAuth2:
+  - `identify` - umożliwia dostęp do podstawowych informacji o użytkowniku
+  - `guilds` - umożliwia dostęp do listy serwerów użytkownika
+  - `email` - umożliwia dostęp do adresu email użytkownika (opcjonalnie)
+
+### 2. Utwórz lub rozszerz instancję Supabase Server
+
+Zaktualizuj istniejącego klienta Supabase lub utwórz nowy w `src/db/supabase.client.ts`:
+
+```typescript
+import type { AstroCookies } from 'astro';
+import { createServerClient, type CookieOptionsWithName } from '@supabase/ssr';
+import type { Database } from '../db/database.types.ts';
+
+export const cookieOptions: CookieOptionsWithName = {
+  path: '/',
+  secure: true,
+  httpOnly: true,
+  sameSite: 'lax',
+};
+
+function parseCookieHeader(cookieHeader: string): { name: string; value: string }[] {
+  return cookieHeader.split(';').map((cookie) => {
+    const [name, ...rest] = cookie.trim().split('=');
+    return { name, value: rest.join('=') };
+  });
+}
+
+export const createSupabaseServerInstance = (context: {
+  headers: Headers;
+  cookies: AstroCookies;
+}) => {
+  const supabase = createServerClient<Database>(
+    import.meta.env.SUPABASE_URL,
+    import.meta.env.SUPABASE_KEY,
+    {
+      cookieOptions,
+      cookies: {
+        getAll() {
+          return parseCookieHeader(context.headers.get('Cookie') ?? '');
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            context.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+
+  return supabase;
+};
+```
+
+### 3. Zaimplementuj lub rozszerz middleware autentykacji
+
+Zaktualizuj istniejące middleware autentykacji lub utwórz nowe w `src/middleware/index.ts`:
+
+```typescript
+import { createSupabaseServerInstance } from '../db/supabase.client.ts';
+import { defineMiddleware } from 'astro:middleware';
+
+// Ścieżki publiczne - endpointy API Auth i strony renderowane na serwerze
+const PUBLIC_PATHS = [
+  // Publiczne strony Astro renderowane na serwerze
+  "/",
+  "/login",
+  "/auth/login",
+  "/auth/register",
+  // Endpointy API Auth
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/callback",
+  "/api/auth/logout",
+];
+
+export const onRequest = defineMiddleware(
+  async ({ locals, cookies, url, request, redirect }, next) => {
+    // Pomijaj sprawdzanie autentykacji dla ścieżek publicznych
+    if (PUBLIC_PATHS.includes(url.pathname)) {
+      return next();
+    }
+
+    const supabase = createSupabaseServerInstance({
+      cookies,
+      headers: request.headers,
+    });
+
+    // WAŻNE: Zawsze najpierw pobierz sesję użytkownika przed innymi operacjami
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      locals.user = {
+        email: user.email,
+        id: user.id,
+      };
+    } else if (!PUBLIC_PATHS.includes(url.pathname)) {
+      // Przekierowanie do logowania dla chronionych ścieżek
+      return redirect('/auth/login');
+    }
+
+    return next();
+  },
+);
+```
+
+### 4. Utwórz endpointy API autentykacji
+
+Utwórz następujące endpointy w `src/pages/api/auth/`:
+
+```typescript
+// src/pages/api/auth/login.ts
+import type { APIRoute } from 'astro';
+import { createSupabaseServerInstance } from '../../../db/supabase.client.ts';
+
+export const GET: APIRoute = async ({ request, cookies, redirect }) => {
+  const supabase = createSupabaseServerInstance({ cookies, headers: request.headers });
+  
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'discord',
+    options: {
+      redirectTo: new URL('/api/auth/callback', request.url).toString(),
+      scopes: 'identify email guilds',
+    }
+  });
+
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
+  }
+
+  return redirect(data.url);
+};
+
+// src/pages/api/auth/callback.ts
+export const GET: APIRoute = async ({ request, cookies, redirect }) => {
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get('code');
+  
+  if (!code) {
+    return redirect('/auth/login?error=no_code');
+  }
+
+  const supabase = createSupabaseServerInstance({ cookies, headers: request.headers });
+  
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error) {
+    return redirect(`/auth/login?error=${error.message}`);
+  }
+
+  // Po udanym zalogowaniu, przekieruj do strony wyboru serwera
+  return redirect('/servers/select');
+};
+
+// src/pages/api/auth/logout.ts
+export const POST: APIRoute = async ({ cookies, request, redirect }) => {
+  const supabase = createSupabaseServerInstance({ cookies, headers: request.headers });
+
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
+  }
+
+  return redirect('/');
+};
+
+// src/pages/api/servers/list.ts
+export const GET: APIRoute = async ({ cookies, request }) => {
+  const supabase = createSupabaseServerInstance({ cookies, headers: request.headers });
+  
+  // Pobierz aktualną sesję użytkownika
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+    });
+  }
+  
+  // Pobierz token dostępu Discord z sesji
+  const providerToken = session.provider_token;
+  
+  if (!providerToken) {
+    return new Response(JSON.stringify({ error: 'No Discord token available' }), {
+      status: 400,
+    });
+  }
+  
+  try {
+    // Pobierz listę serwerów użytkownika z API Discord
+    const response = await fetch('https://discord.com/api/users/@me/guilds', {
+      headers: {
+        Authorization: `Bearer ${providerToken}`,
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Discord API error: ${response.statusText}`);
+    }
+    
+    const guilds = await response.json();
+    
+    // Filtruj serwery, na których użytkownik ma uprawnienia administratora
+    const adminGuilds = guilds.filter(guild => {
+      const permissions = BigInt(guild.permissions);
+      const adminPermission = BigInt(1 << 3); // ADMINISTRATOR permission
+      return (permissions & adminPermission) === adminPermission;
+    });
+    
+    return new Response(JSON.stringify({ guilds: adminGuilds }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching Discord guilds:', error);
+    return new Response(JSON.stringify({ error: 'Failed to fetch Discord servers' }), {
+      status: 500,
+    });
+  }
+};
+```
+
+### 5. Utwórz komponenty React dla autentykacji
+
+#### 5.1 LoginButton.tsx - `/src/components/auth/LoginButton.tsx`
+
+```typescript
+import { useState } from 'react';
+import { Button } from '../ui/button';
+import { Icons } from '../ui/icons';
+
+interface LoginButtonProps {
+  redirectTo?: string;
+}
+
+export function LoginButton({ redirectTo }: LoginButtonProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Przekierowanie do API logowania Discord
+      const searchParams = new URLSearchParams();
+      if (redirectTo) {
+        searchParams.set('redirect_to', redirectTo);
+      }
+      
+      const loginUrl = `/api/auth/login?${searchParams.toString()}`;
+      window.location.href = loginUrl;
+    } catch (error) {
+      console.error('Login error:', error);
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Button 
+      onClick={handleLogin} 
+      disabled={isLoading}
+      className="w-full"
+    >
+      {isLoading ? (
+        <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+      ) : (
+        <Icons.discord className="mr-2 h-4 w-4" />
+      )}
+      Zaloguj przez Discord
+    </Button>
+  );
+}
+```
+
+#### 5.2 ServerSelector.tsx - `/src/components/auth/ServerSelector.tsx`
+
+```typescript
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Skeleton } from '../ui/skeleton';
+import { Icons } from '../ui/icons';
+
+interface DiscordServer {
+  id: string;
+  name: string;
+  icon: string | null;
+  owner: boolean;
+  permissions: string;
+}
+
+export function ServerSelector() {
+  const [servers, setServers] = useState<DiscordServer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetchServers() {
+      try {
+        const response = await fetch('/api/servers/list');
+        if (!response.ok) {
+          throw new Error('Nie udało się pobrać listy serwerów');
+        }
+        
+        const data = await response.json();
+        setServers(data.guilds);
+      } catch (error) {
+        console.error('Error fetching servers:', error);
+        setError('Nie udało się pobrać listy serwerów. Spróbuj ponownie.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchServers();
+  }, []);
+
+  const handleSelectServer = (serverId: string) => {
+    navigate(`/dashboard/${serverId}`);
+  };
+
+  const getServerIcon = (server: DiscordServer) => {
+    if (server.icon) {
+      return `https://cdn.discordapp.com/icons/${server.id}/${server.icon}.png`;
+    }
+    
+    // Domyślny awatar dla serwerów bez ikony
+    return '/discord-default.png';
+  };
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-4">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-red-500">Błąd</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>{error}</p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            className="mt-4"
+          >
+            Spróbuj ponownie
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (servers.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Brak dostępnych serwerów</CardTitle>
+          <CardDescription>
+            Nie znaleziono serwerów, na których masz uprawnienia administratora.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => window.location.href = '/'}>
+            Powrót do strony głównej
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid gap-4">
+      <h2 className="text-2xl font-bold">Wybierz serwer Discord</h2>
+      <p className="text-muted-foreground">
+        Poniżej znajdują się serwery, na których masz uprawnienia administratora.
+      </p>
+      
+      <div className="grid gap-3 mt-4">
+        {servers.map((server) => (
+          <Button
+            key={server.id}
+            variant="outline"
+            className="flex items-center justify-between w-full p-4 h-auto"
+            onClick={() => handleSelectServer(server.id)}
+          >
+            <div className="flex items-center">
+              <img 
+                src={getServerIcon(server)} 
+                alt={server.name}
+                className="w-8 h-8 rounded-full mr-3"
+              />
+              <span>{server.name}</span>
+            </div>
+            <Icons.chevronRight className="h-4 w-4" />
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+#### 5.3 UserMenu.tsx - `/src/components/auth/UserMenu.tsx`
+
+```typescript
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
+import { Button } from '../ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Icons } from '../ui/icons';
+
+interface UserData {
+  id: string;
+  email: string;
+  avatar_url?: string;
+  username?: string;
+}
+
+export function UserMenu() {
+  const [user, setUser] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchUserData() {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchUserData();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Button variant="ghost" size="sm" disabled>
+        <Icons.spinner className="h-4 w-4 animate-spin" />
+      </Button>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Button asChild size="sm">
+        <Link to="/auth/login">
+          Zaloguj się
+        </Link>
+      </Button>
+    );
+  }
+
+  const getInitials = () => {
+    if (user.username) {
+      return user.username.charAt(0).toUpperCase();
+    }
+    if (user.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Avatar className="h-8 w-8">
+            <AvatarImage 
+              src={user.avatar_url || ''} 
+              alt={user.username || user.email || ''}
+            />
+            <AvatarFallback>{getInitials()}</AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">
+              {user.username || 'Użytkownik'}
+            </p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {user.email}
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/servers/select">
+            Zmień serwer
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/dashboard">
+            Dashboard
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/profile">
+            Profil
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+          Wyloguj się
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+```
+
+### 6. Skonfiguruj Supabase do obsługi Discord OAuth
+
+#### 6.1 Konfiguracja w panelu Supabase
+
+1. Przejdź do panelu Supabase dla twojego projektu
+2. W lewym menu bocznym kliknij ikonę "Authentication" (blisko góry)
+3. Kliknij "Providers" w sekcji Configuration
+4. Kliknij na "Discord" na rozwijanej liście accordion, aby rozwinąć i włącz "Discord Enabled"
+5. Wprowadź swoje **Discord Client ID** i **Discord Client Secret** zapisane w poprzednim kroku
+6. Kliknij "Save"
+
+### 7. Zaimplementuj strony Astro dla autentykacji
+
+#### 7.1 Strona logowania - `/src/pages/auth/login.astro`
+
+```astro
+---
+import Layout from '../../layouts/Layout.astro';
+import { LoginButton } from '../../components/auth/LoginButton';
+
+// Sprawdź, czy użytkownik jest już zalogowany
+const { cookies, redirect } = Astro;
+import { createSupabaseServerInstance } from '../../db/supabase.client';
+
+const supabase = createSupabaseServerInstance({
+  cookies,
+  headers: Astro.request.headers,
+});
+
+const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+// Jeśli użytkownik jest zalogowany, przekieruj do wyboru serwera
+if (session) {
+  return redirect('/servers/select');
+}
+
+// Pobierz komunikat błędu z parametrów URL, jeśli istnieje
+const { searchParams } = new URL(Astro.request.url);
+const errorMessage = searchParams.get('error');
+---
+
+<Layout title="Logowanie | Discord Bot">
+  <div class="container flex items-center justify-center min-h-screen py-12">
+    <div class="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+      <div class="flex flex-col space-y-2 text-center">
+        <h1 class="text-2xl font-semibold tracking-tight">Zaloguj się</h1>
+        <p class="text-sm text-muted-foreground">
+          Zaloguj się przez Discord, aby zarządzać swoim botem
+        </p>
+        
+        {errorMessage && (
+          <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-4" role="alert">
+            <span class="block sm:inline">{errorMessage}</span>
+          </div>
+        )}
+      </div>
+      
+      <div class="grid gap-6">
+        <LoginButton client:load />
+      </div>
+      
+      <p class="px-8 text-center text-sm text-muted-foreground">
+        Logując się, akceptujesz nasze 
+        <a href="/terms" class="underline underline-offset-4 hover:text-primary">
+          Warunki korzystania
+        </a>
+        oraz
+        <a href="/privacy" class="underline underline-offset-4 hover:text-primary">
+          Politykę prywatności
+        </a>.
+      </p>
+    </div>
+  </div>
+</Layout>
+```
+
+#### 7.2 Strona wyboru serwera - `/src/pages/servers/select.astro`
+
+```astro
+---
+import Layout from '../../layouts/Layout.astro';
+import { ServerSelector } from '../../components/auth/ServerSelector';
+
+// Sprawdź, czy użytkownik jest zalogowany
+const { cookies, redirect } = Astro;
+import { createSupabaseServerInstance } from '../../db/supabase.client';
+
+const supabase = createSupabaseServerInstance({
+  cookies,
+  headers: Astro.request.headers,
+});
+
+const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+// Jeśli użytkownik nie jest zalogowany, przekieruj do strony logowania
+if (!session) {
+  return redirect('/auth/login');
+}
+---
+
+<Layout title="Wybierz serwer | Discord Bot">
+  <div class="container mx-auto py-12 max-w-md">
+    <ServerSelector client:load />
+  </div>
+</Layout>
+```
+
+### 8. Rozwiązywanie problemów
+
+#### 8.1 Discord OAuth nie działa poprawnie
+- Upewnij się, że URL callback w Discord Developer Portal jest poprawnie skonfigurowany
+- Sprawdź, czy Client ID i Client Secret są poprawnie wprowadzone w ustawieniach Supabase
+- Sprawdź, czy zakresy OAuth są poprawnie skonfigurowane (identify, guilds, email)
+
+#### 8.2 Problemy z sesją
+- Upewnij się, że używasz `getAll` i `setAll` do zarządzania ciasteczkami, a nie pojedynczych metod
+- Sprawdź, czy middleware jest poprawnie skonfigurowane
+
+#### 8.3 Problemy z pobieraniem serwerów Discord
+- Upewnij się, że masz zakres `guilds` w konfiguracji OAuth
+- Sprawdź, czy token dostępu Discord jest poprawnie przechowywany i używany
+- Upewnij się, że wykonujesz zapytania do API Discord z odpowiednimi nagłówkami autoryzacji
+
+## Zasoby
+
+* [Dokumentacja Supabase Auth](mdc:https:/supabase.com/docs/guides/auth)
+* [Dokumentacja Discord Developer Portal](mdc:https:/discord.com/developers/docs)
+* [Dokumentacja Discord OAuth2](mdc:https:/discord.com/developers/docs/topics/oauth2)
+* [Dokumentacja Discord.js](mdc:https:/discord.js.org)
+* [Astro SSR i middleware](mdc:https:/docs.astro.build/en/guides/server-side-rendering)

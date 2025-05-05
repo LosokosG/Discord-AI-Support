@@ -1,0 +1,76 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { LoginButton } from "../../components/auth/LoginButton";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card";
+import { Icons } from "../../components/ui/icons";
+
+// In a real implementation, we would check if user is already logged in and redirect
+// For now, just creating the UI without any backend logic
+
+// Get error message from URL params if it exists
+const { searchParams } = new URL(Astro.request.url);
+const errorMessage = searchParams.get("error");
+---
+
+<Layout title="Logowanie | Discord Bot">
+  <div class="container flex items-center justify-center min-h-[calc(100vh-8rem)] py-8">
+    <div class="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+      <div class="flex flex-col space-y-2 text-center">
+        <Icons.logo client:load className="mx-auto h-10 w-10" />
+        <h1 class="text-2xl font-semibold tracking-tight">Witaj z powrotem</h1>
+        <p class="text-sm text-muted-foreground">Zaloguj się przez Discord, aby zarządzać swoim botem</p>
+      </div>
+
+      <Card>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-xl">Logowanie</CardTitle>
+          <CardDescription> Wybierz metodę logowania, aby kontynuować </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          {
+            errorMessage && (
+              <div class="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+                {errorMessage === "no_code" ? "Wystąpił błąd podczas autoryzacji. Spróbuj ponownie." : errorMessage}
+              </div>
+            )
+          }
+
+          <LoginButton client:load />
+
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <span class="w-full border-t"></span>
+            </div>
+            <div class="relative flex justify-center text-xs uppercase">
+              <span class="bg-background px-2 text-muted-foreground"> Lub </span>
+            </div>
+          </div>
+
+          <div class="text-sm text-center text-muted-foreground">
+            <span>Nie masz jeszcze bota na swoim serwerze?</span>
+          </div>
+
+          <a
+            href="https://discord.com/api/oauth2/authorize"
+            class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"
+          >
+            <Icons.bot client:load className="mr-2 h-4 w-4" />
+            Dodaj bota do serwera
+          </a>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-4">
+          <div class="text-sm text-muted-foreground text-center">
+            Logując się, akceptujesz nasze
+            <a href="/terms" class="underline underline-offset-4 hover:text-primary"> Warunki korzystania z usługi </a>
+            oraz
+            <a href="/privacy" class="underline underline-offset-4 hover:text-primary"> Politykę prywatności </a>.
+          </div>
+        </CardFooter>
+      </Card>
+
+      <div class="text-center text-sm text-muted-foreground">
+        <a href="/" class="hover:text-primary underline underline-offset-4"> Powrót do strony głównej </a>
+      </div>
+    </div>
+  </div>
+</Layout>

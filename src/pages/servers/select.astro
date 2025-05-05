@@ -1,0 +1,62 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { ServerSelector } from "../../components/auth/ServerSelector";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
+import { Icons } from "../../components/ui/icons";
+
+// In a real implementation, we would check if user is already logged in
+// and redirect to login if not authenticated
+// For now, just creating the UI without any backend logic
+---
+
+<Layout title="Wybierz serwer | Discord Bot">
+  <div class="container max-w-screen-lg mx-auto py-8 px-4">
+    <div class="flex flex-col space-y-8">
+      <div class="flex flex-col space-y-2">
+        <h1 class="text-3xl font-bold tracking-tight">Wybierz serwer</h1>
+        <p class="text-muted-foreground">Wybierz serwer Discord, którym chcesz zarządzać</p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Twoje serwery Discord</CardTitle>
+          <CardDescription> Poniżej znajdują się serwery, na których masz uprawnienia administratora </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ServerSelector client:load />
+        </CardContent>
+      </Card>
+
+      <div class="text-sm text-muted-foreground">
+        <p>Nie widzisz swojego serwera? Upewnij się, że:</p>
+        <ul class="list-disc pl-5 mt-2 space-y-1">
+          <li>Posiadasz uprawnienia administratora na serwerze</li>
+          <li>Zalogowałeś się na odpowiednie konto Discord</li>
+          <li>
+            <a href="/api/auth/logout" class="text-primary hover:underline">Wyloguj się</a> i zaloguj ponownie na poprawne
+            konto
+          </li>
+        </ul>
+      </div>
+
+      <div class="border-t pt-6">
+        <div class="flex flex-col space-y-3">
+          <h3 class="font-medium">Dodaj bota do nowego serwera</h3>
+          <p class="text-sm text-muted-foreground">
+            Jeśli chcesz dodać bota do nowego serwera, kliknij poniższy przycisk, aby dodać go przez Discord OAuth.
+          </p>
+
+          <div>
+            <a
+              href="https://discord.com/api/oauth2/authorize"
+              class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            >
+              <Icons.discord client:load className="mr-2 h-4 w-4" />
+              Dodaj bota do serwera
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>

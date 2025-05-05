@@ -5,3 +5,103 @@
 // Redirect to dashboard
 return Astro.redirect("/dashboard");
 ---
+
+import Layout from '../layouts/Layout.astro'; import {Button} from '../components/ui/button'; import {Icons} from '../components/ui/icons';
+
+<Layout title="Discord AI Bot - Zautomatyzuj swój serwer Discord">
+  <div class="flex flex-col min-h-screen">
+    <header class="container py-6">
+      <nav class="flex justify-between items-center">
+        <div class="flex items-center space-x-4">
+          <Icons.logo className="h-8 w-8" />
+          <span class="font-bold text-xl">DiscordAI</span>
+        </div>
+        <div class="flex items-center space-x-4">
+          <a href="/login" class="text-sm font-medium hover:underline"> Zaloguj się </a>
+          <Button asChild size="sm">
+            <a href="/login">Rozpocznij za darmo</a>
+          </Button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="flex-1">
+      <section class="container py-24 space-y-8">
+        <div class="text-center space-y-4 max-w-3xl mx-auto">
+          <h1 class="text-4xl font-bold tracking-tight sm:text-5xl">Zautomatyzuj swój serwer Discord z pomocą AI</h1>
+          <p class="text-xl text-muted-foreground">
+            Nasz bot wykorzystuje zaawansowaną sztuczną inteligencję, aby pomóc w moderacji, odpowiadaniu na pytania i
+            tworzeniu unikalnych doświadczeń na Twoim serwerze.
+          </p>
+          <div class="pt-6">
+            <Button asChild size="lg">
+              <a href="/login">
+                <Icons.discord className="mr-2 h-5 w-5" />
+                Zaloguj przez Discord
+              </a>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <section class="container py-24 bg-muted/50">
+        <div class="grid gap-8 md:grid-cols-3">
+          <div class="bg-background rounded-lg p-6 shadow-sm">
+            <div class="mb-4">
+              <Icons.moderation className="h-10 w-10 text-primary" />
+            </div>
+            <h3 class="text-xl font-bold mb-2">Inteligentna moderacja</h3>
+            <p class="text-muted-foreground">
+              Automatyczne wykrywanie i filtrowanie nieodpowiednich treści, ostrzeganie i blokowanie użytkowników.
+            </p>
+          </div>
+          <div class="bg-background rounded-lg p-6 shadow-sm">
+            <div class="mb-4">
+              <Icons.bot className="h-10 w-10 text-primary" />
+            </div>
+            <h3 class="text-xl font-bold mb-2">Asystent AI</h3>
+            <p class="text-muted-foreground">
+              Inteligentny asystent odpowiadający na pytania użytkowników w czasie rzeczywistym.
+            </p>
+          </div>
+          <div class="bg-background rounded-lg p-6 shadow-sm">
+            <div class="mb-4">
+              <Icons.customize className="h-10 w-10 text-primary" />
+            </div>
+            <h3 class="text-xl font-bold mb-2">Personalizacja</h3>
+            <p class="text-muted-foreground">
+              Dostosuj zachowanie bota do potrzeb swojego serwera poprzez intuicyjny panel administracyjny.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="container py-24">
+        <div class="text-center space-y-4 max-w-3xl mx-auto mb-12">
+          <h2 class="text-3xl font-bold tracking-tight">Gotowy, by ulepszyć swój serwer?</h2>
+          <p class="text-xl text-muted-foreground">
+            Zaloguj się przez Discord i zacznij korzystać z możliwości naszego bota AI już teraz.
+          </p>
+          <div class="pt-6">
+            <Button asChild size="lg">
+              <a href="/login">
+                <Icons.discord className="mr-2 h-5 w-5" />
+                Zaloguj przez Discord
+              </a>
+            </Button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t py-8">
+      <div class="container flex flex-col md:flex-row justify-between items-center">
+        <div class="flex items-center space-x-2 mb-4 md:mb-0">
+          <Icons.logo className="h-5 w-5" />
+          <span class="font-medium">DiscordAI</span>
+        </div>
+        <div class="text-sm text-muted-foreground">© 2023 DiscordAI. Wszelkie prawa zastrzeżone.</div>
+      </div>
+    </footer>
+  </div>
+</Layout>
