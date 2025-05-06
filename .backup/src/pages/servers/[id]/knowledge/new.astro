@@ -1,0 +1,88 @@
+---
+import Layout from "../../../../layouts/Layout.astro";
+import { DocumentCreateView } from "../../../../components/knowledge/DocumentCreateView";
+import { createDocument } from "@/lib/services/documents";
+import type { UploadDocumentCommand } from "@/types";
+
+// Define interface for the mock user
+interface MockUser {
+  id: string;
+  discord_id: string;
+  discord_username: string;
+  role?: string;
+}
+
+// Get the server ID from the URL
+const { id } = Astro.params;
+
+// We'll handle not having an ID in the React component
+if (!id) {
+  return Astro.redirect("/servers");
+}
+
+// Handle form submission
+let error: string | null = null;
+let redirectUrl: string | null = null;
+
+if (Astro.request.method === "POST") {
+  try {
+    const formData = await Astro.request.formData();
+    const title = formData.get("title") as string;
+    const fileType = formData.get("fileType") as string;
+    const content = (formData.get("content") as string) || "";
+
+    const supabase = Astro.locals.supabase;
+
+    // Basic validation
+    if (!title) {
+      throw new Error("Title is required");
+    }
+
+    if (!fileType) {
+      throw new Error("File type is required");
+    }
+
+    // We only support txt or md formats now
+    if (!["txt", "md"].includes(fileType)) {
+      throw new Error("Invalid file type. Only txt and md are supported.");
+    }
+
+    // For text or markdown, we need content
+    if (!content) {
+      throw new Error("Content is required");
+    }
+
+    // Create document
+    const documentData: UploadDocumentCommand = {
+      title,
+      fileType,
+      content,
+    };
+
+    // Get the user ID from the mock user in middleware
+    // This ensures we always have a valid user ID that's compatible with the database
+    // Typecast locals to access the user property with proper type
+    const mockUser = (Astro.locals as { user?: MockUser }).user;
+    const userId = mockUser?.id || "b0d9e154-f13a-468a-abf3-e2e2db9b6f22"; // Fallback to MOCK_USER_ID
+
+    await createDocument(id, documentData, userId, supabase);
+
+    // Redirect to the document list
+    redirectUrl = `/servers/${id}/knowledge`;
+  } catch (err) {
+    console.error("Error creating document:", err);
+    error = err instanceof Error ? err.message : "Failed to create document. Please try again.";
+  }
+}
+
+// If we have a redirect URL, send the user there
+if (redirectUrl) {
+  return Astro.redirect(redirectUrl);
+}
+---
+
+<Layout title="Add Document">
+  <div class="container mx-auto py-6">
+    <DocumentCreateView client:load serverId={id} error={error} />
+  </div>
+</Layout>

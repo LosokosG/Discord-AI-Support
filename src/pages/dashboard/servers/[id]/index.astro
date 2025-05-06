@@ -1,0 +1,345 @@
+---
+/** eslint-disable no-console */
+
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  MessageSquare,
+  Database,
+  Settings,
+  ExternalLink,
+  Users,
+  Clock,
+  Bot,
+  BarChart,
+  Server,
+  PlusCircle,
+  AlertTriangle,
+} from "lucide-react";
+import { getServerById, getAllServers } from "@/lib/services/serverService";
+import type { ServerData } from "@/lib/services/serverService";
+
+const { id } = Astro.params;
+// Display server ID for debugging
+console.log("Server ID from params:", id);
+
+// Get server data from database
+let server: ServerData | null = null;
+let connectionError = false;
+
+if (!id) {
+  console.log("No server ID provided, redirecting to dashboard");
+  return Astro.redirect("/dashboard");
+}
+
+try {
+  // Get server from database
+  server = await getServerById(id);
+  if (!server) {
+    console.log("Server not found, redirecting to dashboard");
+    return Astro.redirect("/dashboard");
+  }
+  console.log("Server data from DB:", server);
+} catch (err) {
+  console.error("Failed to fetch server:", err);
+  connectionError = true;
+}
+
+// Server must exist at this point due to the redirect above
+const serverName = server!.name;
+const serverIcon = server!.icon_url;
+const isActive = server!.active;
+
+// Generate Discord OAuth URL for bot reinstall
+const getAddBotUrl = (serverId: string, serverName: string, serverIcon: string | null) => {
+  // Get the current site's origin for redirect URL
+  const origin = Astro.url.origin;
+  const redirectUri = `${origin}/auth/bot-callback`;
+
+  // Encode server information in the state parameter
+  const state = encodeURIComponent(
+    JSON.stringify({
+      guild_id: serverId,
+      guild_name: serverName,
+      guild_icon: serverIcon,
+    })
+  );
+
+  // Standard Discord bot add URL with server pre-selected and our callback
+  const url =
+    `https://discord.com/api/oauth2/authorize` +
+    `?client_id=${import.meta.env.PUBLIC_DISCORD_CLIENT_ID}` +
+    `&permissions=8` +
+    `&scope=bot%20applications.commands` +
+    `&guild_id=${serverId}` +
+    `&disable_guild_select=true` +
+    `&response_type=code` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&state=${state}`;
+
+  return url;
+};
+
+// Default stats for dashboard (in the future these may be retrieved from actual data)
+const stats = {
+  knowledgeEntries: 0, // Default value
+  conversations: 0, // Default value
+  activeUsers: 42,
+  uptime: "99.9%",
+  responseTime: "1.2s",
+  usage: "78%",
+};
+
+// If server.config exists and has knowledge/stats data, use it
+if (server && server.config && typeof server.config === "object") {
+  const config = server.config as Record<string, unknown>;
+
+  if (config.knowledge && typeof config.knowledge === "object") {
+    const knowledge = config.knowledge as Record<string, unknown>;
+    stats.knowledgeEntries = typeof knowledge.entries === "number" ? knowledge.entries : 0;
+  }
+
+  if (config.stats && typeof config.stats === "object") {
+    const statsConfig = config.stats as Record<string, unknown>;
+    stats.conversations = typeof statsConfig.conversations === "number" ? statsConfig.conversations : 0;
+  }
+}
+
+// Get list of available servers for selector
+let availableServers: ServerData[] = [];
+try {
+  availableServers = await getAllServers();
+} catch (err) {
+  console.error("Failed to fetch servers list:", err);
+}
+
+// Mock username - in a real application, this should come from authentication
+const username = "Discord Admin";
+---
+
+<DashboardLayout
+  title={`${serverName} - Dashboard`}
+  activeTab="servers"
+  serverName={serverName}
+  serverIcon={serverIcon || undefined}
+  username={username}
+>
+  <div class="flex items-start w-full gap-6 p-6">
+    <div class="flex-1 space-y-6">
+      {
+        connectionError && (
+          <div class="bg-discord-red/10 text-discord-red p-3 rounded-md mb-4">
+            Error connecting to the database. Some data may not be displayed correctly.
+          </div>
+        )
+      }
+
+      {
+        !isActive && (
+          <div class="bg-amber-100 text-amber-800 p-4 rounded-md mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 mt-0.5" />
+              <div>
+                <h3 class="font-semibold">Bot is not active in this server</h3>
+                <p class="text-sm">
+                  The bot appears to have been removed from this server. You can view configurations but changes won't
+                  apply until the bot is reinstalled.
+                </p>
+              </div>
+            </div>
+            <a href={getAddBotUrl(id, serverName, serverIcon)} class="whitespace-nowrap">
+              <Button className="gap-2 bg-amber-600 hover:bg-amber-700">
+                <PlusCircle className="h-4 w-4" />
+                Reinstall Bot
+              </Button>
+            </a>
+          </div>
+        )
+      }
+
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-discord-text-normal">{serverName}</h1>
+          <p class="text-discord-text-muted">Server overview and statistics</p>
+        </div>
+
+        <div class="flex items-center bg-[#2B2D31] rounded-md p-2 shadow-md">
+          <Server className="h-5 w-5 text-discord-text-muted mr-2" />
+          <select
+            id="server-selector"
+            class="bg-transparent text-discord-text-normal border-none focus:outline-none focus:ring-0 text-sm font-medium"
+          >
+            <option value="" disabled selected>Change server</option>
+            {
+              availableServers.map((s) => (
+                <option value={`/dashboard/servers/${s.id}`} selected={String(s.id) === id}>
+                  {s.name}
+                </option>
+              ))
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Quick Actions Section - Now above statistics -->
+      <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-discord-text-normal text-xl">Quick Actions</CardTitle>
+          <CardDescription className="text-discord-text-muted text-base">Common tasks and shortcuts</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <a
+              href={isActive ? `/dashboard/servers/${id}/knowledge` : "javascript:void(0);"}
+              class={buttonVariants({
+                variant: "outline",
+                size: "lg",
+                class: `justify-start bg-gradient-to-r ${isActive ? "from-[#5865F2] to-[#7983F5]" : "from-gray-400 to-gray-500"} border-none text-white hover:opacity-90 shadow-md h-14 text-base ${!isActive ? "cursor-not-allowed opacity-70" : ""}`,
+              })}
+            >
+              <Database className="mr-3 h-5 w-5" />
+              Add knowledge
+            </a>
+            <a
+              href={`/dashboard/servers/${id}/settings`}
+              class={buttonVariants({
+                variant: "outline",
+                size: "lg",
+                class: `justify-start bg-gradient-to-r ${isActive ? "from-[#5865F2] to-[#7983F5]" : "from-gray-400 to-gray-500"} border-none text-white hover:opacity-90 shadow-md h-14 text-base`,
+              })}
+            >
+              <Settings className="mr-3 h-5 w-5" />
+              Bot settings
+            </a>
+            <a
+              href={`https://discord.com/channels/${id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              class={buttonVariants({
+                variant: "outline",
+                size: "lg",
+                class:
+                  "justify-start bg-gradient-to-r from-[#5865F2] to-[#7983F5] border-none text-white hover:opacity-90 shadow-md h-14 text-base",
+              })}
+            >
+              <ExternalLink className="mr-3 h-5 w-5" />
+              Open in Discord
+            </a>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Statistics Section -->
+      <div>
+        <h2 class="text-xl font-bold mb-4 text-discord-text-normal">Statistics</h2>
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-discord-text-normal">Knowledge Base</CardTitle>
+              <Database className="h-5 w-5 text-discord-text-muted" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-3xl font-bold text-discord-text-normal">
+                {stats.knowledgeEntries}
+              </div>
+              <p class="text-sm text-discord-text-muted mt-1">Knowledge base entries</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-discord-text-normal">Conversations</CardTitle>
+              <MessageSquare className="h-5 w-5 text-discord-text-muted" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-3xl font-bold text-discord-text-normal">
+                {stats.conversations}
+              </div>
+              <p class="text-sm text-discord-text-muted mt-1">Bot conversations today</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-discord-text-normal">Active Users</CardTitle>
+              <Users className="h-5 w-5 text-discord-text-muted" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-3xl font-bold text-discord-text-normal">
+                {stats.activeUsers}
+              </div>
+              <p class="text-sm text-discord-text-muted mt-1">Users today</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-discord-text-normal">Uptime</CardTitle>
+              <Clock className="h-5 w-5 text-discord-text-muted" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-3xl font-bold text-discord-text-normal">
+                {stats.uptime}
+              </div>
+              <p class="text-sm text-discord-text-muted mt-1">Bot availability</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-discord-text-normal">Response Time</CardTitle>
+              <Bot className="h-5 w-5 text-discord-text-muted" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-3xl font-bold text-discord-text-normal">
+                {stats.responseTime}
+              </div>
+              <p class="text-sm text-discord-text-muted mt-1">Average response</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-discord-text-normal">Usage</CardTitle>
+              <BarChart className="h-5 w-5 text-discord-text-muted" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-3xl font-bold text-discord-text-normal">
+                {stats.usage}
+              </div>
+              <p class="text-sm text-discord-text-muted mt-1">Resource utilization</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-discord-background-secondary border-[#EDEEF0] shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-medium text-discord-text-normal">Configuration</CardTitle>
+              <Settings className="h-5 w-5 text-discord-text-muted" />
+            </CardHeader>
+            <CardContent>
+              <div class="text-3xl font-bold text-discord-text-normal">Active</div>
+              <p class="text-sm text-discord-text-muted mt-1">Server settings status</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  // Handle server selection change
+  const serverSelector = document.getElementById("server-selector");
+
+  if (serverSelector) {
+    serverSelector.addEventListener("change", function () {
+      // TypeScript assertion for HTML select element
+      const select = this as HTMLSelectElement;
+      if (select.value) {
+        console.log("Redirecting to server:", select.value);
+        window.location.href = select.value;
+      }
+    });
+  }
+</script>

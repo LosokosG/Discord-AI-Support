@@ -1,0 +1,55 @@
+---
+import DashboardLayout from "../../../../../layouts/DashboardLayout.astro";
+import BackLink from "../../../../../components/dashboard/BackLink";
+import { DocumentEditView } from "@/components/knowledge/DocumentEditView";
+import { getDocumentById } from "@/lib/services/documents";
+
+// Get the server ID and document ID from the URL
+const { id, docId } = Astro.params;
+
+// Redirect if we don't have both IDs
+if (!id || !docId) {
+  return Astro.redirect("/dashboard");
+}
+
+// Try to get the document
+let document = null;
+let error = null;
+
+try {
+  const supabase = Astro.locals.supabase;
+  document = await getDocumentById(docId, supabase);
+
+  // If document doesn't exist or belongs to a different server, redirect
+  if (!document || document.serverId !== id) {
+    return Astro.redirect(`/dashboard/servers/${id}/knowledge`);
+  }
+} catch (err) {
+  console.error("Error fetching document:", err);
+  error = "Failed to load document";
+}
+---
+
+<DashboardLayout title="Edit Document" activeTab="knowledge">
+  <div class="container mx-auto py-6 px-4">
+    <div class="mb-6">
+      <BackLink href={`/dashboard/servers/${id}/knowledge`} label="Back to Documents" />
+      <h1 class="text-2xl font-bold mt-4">Edit Document</h1>
+      <p class="text-muted-foreground">Update document content and metadata</p>
+    </div>
+
+    {
+      error ? (
+        <div class="bg-destructive/10 text-destructive border border-destructive/20 rounded-lg p-4">
+          <h3 class="font-medium">Error Loading Document</h3>
+          <p>{error}</p>
+          <a href={`/dashboard/servers/${id}/knowledge`} class="underline mt-2 inline-block">
+            Return to document list
+          </a>
+        </div>
+      ) : (
+        <DocumentEditView client:load serverId={id} documentId={docId} initialDocument={document} />
+      )
+    }
+  </div>
+</DashboardLayout>

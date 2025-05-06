@@ -1,0 +1,167 @@
+:root {
+  /* Discord Base Colors */
+  --discord-main: #313338;
+  --discord-secondary: #2B2D31;
+  --discord-sidebar: #1E1F22;
+  --discord-blurple: #5865F2;
+  --discord-blurple-hover: #4752C4;
+  --discord-green: #23A55A;
+  --discord-red: #F23F43;
+  --discord-yellow: #F0B232;
+  
+  /* Text Colors */
+  --discord-text-normal: #EDEEF0;
+  --discord-text-muted: #949BA4;
+  --discord-text-link: #00A8FC;
+  
+  /* Component Colors */
+  --discord-interactive-normal: #B5BAC1;
+  --discord-interactive-hover: #DCDDDE;
+  --discord-interactive-active: #FFFFFF;
+  --discord-interactive-muted: #4E5058;
+  
+  /* Background Colors */
+  --discord-background-primary: var(--discord-main);
+  --discord-background-secondary: var(--discord-secondary);
+  --discord-background-tertiary: var(--discord-sidebar);
+  --discord-background-accent: var(--discord-blurple);
+  --discord-background-floating: #18191C;
+  
+  /* Border Colors */
+  --discord-border: rgba(78, 80, 88, 0.48);
+  
+  /* Input Colors */
+  --discord-input-background: #1E1F22;
+  --discord-input-border: #0C0D0F;
+  
+  /* Shadcn/ui Theme Mapping */
+  --background: var(--discord-background-primary);
+  --foreground: var(--discord-text-normal);
+  
+  --card: var(--discord-background-secondary);
+  --card-foreground: var(--discord-text-normal);
+  
+  --popover: var(--discord-background-floating);
+  --popover-foreground: var(--discord-text-normal);
+  
+  --primary: var(--discord-blurple);
+  --primary-foreground: white;
+  
+  --secondary: var(--discord-background-tertiary);
+  --secondary-foreground: var(--discord-text-normal);
+  
+  --muted: var(--discord-interactive-muted);
+  --muted-foreground: var(--discord-text-muted);
+  
+  --accent: var(--discord-blurple);
+  --accent-foreground: var(--discord-interactive-active);
+  
+  --destructive: var(--discord-red);
+  --destructive-foreground: white;
+  
+  --border: var(--discord-border);
+  --input: var(--discord-input-background);
+  --ring: var(--discord-blurple);
+  
+  --radius: 0.5rem;
+  
+  /* Sidebar Width */
+  --sidebar-width: 72px;
+}
+
+/* Animation utilities */
+.animate-glow {
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 5px 0 rgba(88, 101, 242, 0.2);
+  }
+  to {
+    box-shadow: 0 0 15px 5px rgba(88, 101, 242, 0.4);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom scrollbar for Discord style */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--discord-interactive-muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--discord-interactive-normal);
+}
+
+/* Discord font */
+@font-face {
+  font-family: 'gg sans';
+  src: url('/fonts/gg-sans-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'gg sans';
+  src: url('/fonts/gg-sans-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'gg sans';
+  src: url('/fonts/gg-sans-semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'gg sans';
+  src: url('/fonts/gg-sans-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+} 

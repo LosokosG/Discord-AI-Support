@@ -1,0 +1,31 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { KnowledgeView } from "../../../components/knowledge/KnowledgeView";
+import { getDocumentsByServerId } from "@/lib/services/documents";
+import type { DocumentList as DocumentListType } from "@/types";
+
+// Get the server ID from the URL
+const { id } = Astro.params;
+
+// We'll handle not having an ID in the React component
+if (!id) {
+  return Astro.redirect("/servers");
+}
+
+// Get initial documents list
+let documents: DocumentListType | null = null;
+
+try {
+  const supabase = Astro.locals.supabase;
+  documents = await getDocumentsByServerId(id, { page: 1, pageSize: 20 }, supabase);
+} catch (err) {
+  console.error("Error fetching documents:", err);
+  // We'll let the client-side component handle the error
+}
+---
+
+<Layout title="Knowledge Base">
+  <div class="container mx-auto py-6">
+    <KnowledgeView client:load serverId={id} initialDocuments={documents} />
+  </div>
+</Layout>

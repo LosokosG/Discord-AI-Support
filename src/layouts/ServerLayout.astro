@@ -1,0 +1,64 @@
+---
+interface Props {
+  title: string;
+  activeTab?: string;
+}
+
+const { title, activeTab } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} | AI Support Bot</title>
+  </head>
+  <body class="min-h-screen bg-background">
+    <div class="flex min-h-screen flex-col">
+      <header class="sticky top-0 z-50 w-full border-b bg-background">
+        <div class="container flex h-16 items-center px-4">
+          <div class="mr-4">
+            <a href="/" class="flex items-center gap-2 font-bold"> AI Support Bot </a>
+          </div>
+          <nav class="flex items-center gap-4 mx-6 flex-1">
+            <a
+              href={activeTab === "dashboard" ? "#" : "/servers"}
+              class={`text-sm font-medium transition-colors hover:text-primary ${activeTab === "dashboard" ? "text-primary" : "text-muted-foreground"}`}
+            >
+              Dashboard
+            </a>
+            <a
+              href={activeTab === "knowledge" ? "#" : "/servers/{id}/knowledge"}
+              class={`text-sm font-medium transition-colors hover:text-primary ${activeTab === "knowledge" ? "text-primary" : "text-muted-foreground"}`}
+            >
+              Knowledge Base
+            </a>
+            <a
+              href={activeTab === "conversations" ? "#" : "/servers/{id}/conversations"}
+              class={`text-sm font-medium transition-colors hover:text-primary ${activeTab === "conversations" ? "text-primary" : "text-muted-foreground"}`}
+            >
+              Conversations
+            </a>
+            <a
+              href={activeTab === "settings" ? "#" : "/servers/{id}/settings"}
+              class={`text-sm font-medium transition-colors hover:text-primary ${activeTab === "settings" ? "text-primary" : "text-muted-foreground"}`}
+            >
+              Settings
+            </a>
+          </nav>
+          <div class="flex items-center gap-2">
+            <button class="text-sm font-medium text-muted-foreground"> Sign Out </button>
+          </div>
+        </div>
+      </header>
+      <main class="flex-1">
+        <slot />
+      </main>
+      <footer class="border-t py-4">
+        <div class="container px-4 text-center text-sm text-muted-foreground">
+          © {new Date().getFullYear()} AI Support Bot. All rights reserved.
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

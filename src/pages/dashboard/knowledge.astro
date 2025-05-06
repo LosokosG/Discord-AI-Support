@@ -1,0 +1,23 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+
+// Check if the URL contains a server ID - if someone is trying to access /knowledge directly
+const currentPath = Astro.url.pathname;
+const isServerPage = currentPath.includes("/dashboard/servers/") && /\/dashboard\/servers\/[^/]+/.test(currentPath);
+
+// If we're not on a server page, redirect to dashboard
+if (!isServerPage) {
+  return Astro.redirect("/dashboard");
+}
+---
+
+<DashboardLayout title="Knowledge Base" activeTab="knowledge">
+  <div class="flex items-center justify-center h-full">
+    <div class="text-center p-8 max-w-md">
+      <h2 class="text-2xl font-semibold mb-4">Select a Server</h2>
+      <p class="text-discord-text-muted mb-6">
+        Please select a server from the sidebar to view and manage its knowledge base.
+      </p>
+    </div>
+  </div>
+</DashboardLayout>

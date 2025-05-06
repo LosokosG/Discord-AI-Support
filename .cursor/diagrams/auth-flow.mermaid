@@ -1,0 +1,78 @@
+```mermaid
+sequenceDiagram
+    autonumber
+    
+    participant Browser as Przeglądarka
+    participant Middleware as Astro Middleware
+    participant API as Astro API
+    participant Auth as Supabase Auth
+    participant Discord as Discord API
+    
+    Note over Browser,Discord: Proces logowania przez Discord OAuth
+    
+    Browser->>API: Żądanie inicjacji logowania (/api/auth/login)
+    API->>API: Generowanie tokenu state dla CSRF
+    API->>Browser: Przekierowanie do URL Discord OAuth
+    Browser->>Discord: Żądanie autoryzacji (zawiera client_id, scope, redirect_uri, state)
+    
+    alt Użytkownik odmawia autoryzacji
+        Discord->>Browser: Przekierowanie z błędem odmowy dostępu
+        Browser->>API: Przekazanie kodu błędu (/api/auth/callback)
+        API->>Browser: Wyświetlenie komunikatu o błędzie
+    else Użytkownik akceptuje autoryzację
+        Discord->>Browser: Przekierowanie z kodem autoryzacji
+        Browser->>API: Przekazanie kodu autoryzacji (/api/auth/callback)
+        
+        API->>API: Weryfikacja tokenu state przeciwko CSRF
+        API->>Discord: Wymiana kodu na token dostępu
+        Discord->>API: Token dostępu i odświeżania
+        
+        API->>Discord: Pobranie danych użytkownika (id, username, email)
+        Discord->>API: Dane użytkownika
+        
+        API->>Discord: Pobranie listy serwerów użytkownika
+        Discord->>API: Lista serwerów
+        
+        API->>Auth: Utworzenie/aktualizacja użytkownika w Supabase
+        Auth->>API: Potwierdzenie utworzenia/aktualizacji
+        
+        API->>Auth: Utworzenie sesji użytkownika
+        Auth->>API: Dane sesji
+        
+        API->>Browser: Zapisanie tokenu sesji w cookie i przekierowanie
+    end
+    
+    Note over Browser,Auth: Weryfikacja sesji i obsługa żądań chronionych zasobów
+    
+    Browser->>API: Żądanie chronionego zasobu
+    API->>Middleware: Przetwarzanie żądania
+    
+    activate Middleware
+    Middleware->>Auth: Weryfikacja tokenu sesji
+    
+    alt Sesja aktywna
+        Auth->>Middleware: Dane sesji
+        Middleware->>API: Kontynuacja z danymi sesji
+        API->>Browser: Odpowiedź z żądanymi danymi
+    else Sesja wygasła
+        Auth->>Middleware: Błąd wygaśnięcia tokenu
+        
+        alt Dostępny token odświeżania
+            Middleware->>Auth: Żądanie odświeżenia tokenu
+            Auth->>Middleware: Nowy token sesji
+            Middleware->>API: Kontynuacja z danymi sesji
+            API->>Browser: Odpowiedź z żądanymi danymi
+        else Brak tokenu odświeżania
+            Middleware->>Browser: Przekierowanie do strony logowania
+            Browser->>API: Ponowna inicjacja procesu logowania
+        end
+    end
+    deactivate Middleware
+    
+    Note over Browser,API: Wylogowanie użytkownika
+    
+    Browser->>API: Żądanie wylogowania (/api/auth/logout)
+    API->>Auth: Usuń sesję
+    Auth->>API: Potwierdzenie usunięcia sesji
+    API->>Browser: Usunięcie cookie sesji i przekierowanie do strony głównej
+``` 

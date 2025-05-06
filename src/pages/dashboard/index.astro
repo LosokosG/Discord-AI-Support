@@ -1,0 +1,36 @@
+---
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import ServerSelector from "../../components/dashboard/ServerSelector";
+import { createSupabaseServerInstance } from "../../db/supabase.server";
+
+// Sprawdź, czy użytkownik jest zalogowany
+const { cookies, redirect } = Astro;
+
+const supabase = createSupabaseServerInstance({
+  cookies,
+  headers: Astro.request.headers,
+});
+
+const {
+  data: { user },
+} = await supabase.auth.getUser();
+
+if (!user) {
+  return redirect("/auth/login");
+}
+
+// Get env variables to pass to client components
+const discordClientId = import.meta.env.DISCORD_CLIENT_ID;
+
+console.log("📢 [dashboard/index] User details:", {
+  email: user.email,
+  id: user.id,
+  metadata: user.user_metadata,
+});
+---
+
+<DashboardLayout title="Dashboard | Discord AI Support Bot">
+  <div class="container mx-auto p-6">
+    <ServerSelector client:load discordClientId={discordClientId} />
+  </div>
+</DashboardLayout>

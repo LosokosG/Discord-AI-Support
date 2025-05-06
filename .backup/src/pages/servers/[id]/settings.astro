@@ -1,0 +1,25 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { ServerSettingsView } from "../../../components/ServerSettingsView";
+
+// Get the server ID from the URL
+const { id } = Astro.params;
+
+// We'll handle not having an ID in the React component
+if (!id) {
+  return Astro.redirect("/servers");
+}
+
+// You might want to check authentication here
+// For example:
+// const user = await getUserFromSession(Astro.cookies);
+// if (!user) {
+//   return Astro.redirect("/login?redirect=" + encodeURIComponent(Astro.url.pathname));
+// }
+---
+
+<Layout title="Server Settings">
+  <div class="container mx-auto py-6">
+    <ServerSettingsView client:load serverId={id} />
+  </div>
+</Layout>
