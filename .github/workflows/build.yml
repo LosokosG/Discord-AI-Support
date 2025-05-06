@@ -31,10 +31,10 @@ jobs:
       
       - name: Create ESLint config for CI
         run: |
-          echo 'module.exports = { rules: { "prettier/prettier": "off" } };' > .eslintrc.ci.js
+          echo 'module.exports = { rules: { "prettier/prettier": "off" } };' > .eslintrc.ci.cjs
       
       - name: Lint
-        run: npx eslint --config .eslintrc.ci.js .
+        run: npx eslint --config .eslintrc.ci.cjs .
       
       - name: Run unit tests
         run: npm run test
