@@ -19,15 +19,18 @@ if (!user) {
   return redirect("/auth/login");
 }
 
-console.log("📢 [dashboard/index] Szczegóły użytkownika:", {
+// Get env variables to pass to client components
+const discordClientId = import.meta.env.DISCORD_CLIENT_ID;
+
+console.log("📢 [dashboard/index] User details:", {
   email: user.email,
   id: user.id,
   metadata: user.user_metadata,
 });
 ---
 
-<DashboardLayout title="Panel zarządzania | Discord AI Support Bot">
+<DashboardLayout title="Dashboard | Discord AI Support Bot">
   <div class="container mx-auto p-6">
-    <ServerSelector client:load />
+    <ServerSelector client:load discordClientId={discordClientId} />
   </div>
 </DashboardLayout>

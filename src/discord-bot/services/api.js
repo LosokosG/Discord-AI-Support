@@ -249,41 +249,83 @@ Feel free to edit or delete this document.`,
    */
   async ensureServerExists(guild) {
     try {
-      const exists = await this.serverExists(guild.id);
+      // Validate guild object
+      if (!guild || typeof guild !== "object") {
+        return { error: "Invalid guild object" };
+      }
+
+      // Ensure guild has required properties
+      if (!guild.id) {
+        return { error: "Guild object missing ID" };
+      }
+
+      const serverIdStr = typeof guild.id === "bigint" ? guild.id.toString() : guild.id;
+      const exists = await this.serverExists(serverIdStr);
 
       if (!exists) {
         // Server doesn't exist, register it
-        // The default knowledge document will be created in registerServer method
+        let iconUrl = null;
+
+        // Safely get icon URL if available
+        try {
+          if (guild.icon) {
+            iconUrl = `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`;
+          } else if (typeof guild.iconURL === "function") {
+            iconUrl = guild.iconURL({ dynamic: true });
+          }
+        } catch (iconError) {
+          console.error(`Error getting icon URL: ${iconError.message}`);
+        }
+
+        // Register new server
         return await this.registerServer({
           id: guild.id,
-          name: guild.name,
-          iconUrl: guild.iconURL({ dynamic: true }),
+          name: guild.name || `Unknown Server ${guild.id}`,
+          iconUrl: iconUrl,
         });
       }
 
-      // Server exists, check if it has a default knowledge document
-      const serverConfig = await this.getServerConfig(guild.id);
+      // Server exists - update active status
+      const { data, error } = await this.supabase
+        .from("servers")
+        .update({ active: true })
+        .eq("id", serverIdStr)
+        .select()
+        .single();
+
+      if (error) {
+        console.error(`Error updating server ${serverIdStr} active status: ${error.message}`);
+        // Continue and try to fetch the server anyway
+      } else {
+        console.log(`Updated server ${serverIdStr} active status to true`);
+      }
+
+      // Clear all caches for this server
+      this.invalidateServerCache(serverIdStr);
+
+      // Get server configuration to return
+      const serverConfig = await this.getServerConfig(serverIdStr, true);
 
       // Get knowledge documents for this server
       const { data: documents } = await this.supabase
         .from("knowledge_documents")
         .select("id")
-        .eq("server_id", typeof guild.id === "bigint" ? guild.id.toString() : guild.id)
+        .eq("server_id", serverIdStr)
         .limit(1);
 
       // If no documents exist, create a default one
       if (!documents || documents.length === 0) {
         try {
-          await this.createDefaultKnowledgeDocument(typeof guild.id === "bigint" ? guild.id.toString() : guild.id);
+          await this.createDefaultKnowledgeDocument(serverIdStr);
         } catch (docError) {
-          console.error(`Error creating default knowledge document for existing server ${guild.id}:`, docError);
+          console.error(`Error creating default knowledge document for server ${serverIdStr}:`, docError);
           // Don't throw, we want to return the server config anyway
         }
       }
 
       return serverConfig;
     } catch (error) {
-      console.error(`Error ensuring server ${guild.id} exists:`, error);
+      console.error(`Error ensuring server ${guild?.id || "unknown"} exists:`, error);
       throw error;
     }
   }
@@ -874,7 +916,7 @@ Feel free to edit or delete this document.`,
       // Get current server data
       const { data: currentServer } = await this.supabase
         .from("servers")
-        .select("config")
+        .select("config, active")
         .eq("id", serverIdStr)
         .single();
 
@@ -888,9 +930,13 @@ Feel free to edit or delete this document.`,
         ...configData,
       };
 
+      // Important: Don't change active status during config updates
       const { data, error } = await this.supabase
         .from("servers")
-        .update({ config: updatedConfig })
+        .update({
+          config: updatedConfig,
+          // Don't include 'active' field to avoid overwriting it
+        })
         .eq("id", serverIdStr)
         .select()
         .single();
@@ -1385,6 +1431,149 @@ Feel free to edit or delete this document.`,
     } catch (error) {
       console.error(`Error getting forwarded ticket for conversation ${conversationId}:`, error);
       return null;
+    }
+  }
+
+  /**
+   * Mark a server as inactive in the database
+   * @param {string} serverId - Discord server ID
+   * @returns {Promise<boolean>} - Success status
+   */
+  async markServerAsInactive(serverId) {
+    try {
+      const serverIdStr = typeof serverId === "bigint" ? serverId.toString() : serverId;
+
+      const { data, error } = await this.supabase
+        .from("servers")
+        .update({ active: false })
+        .eq("id", serverIdStr)
+        .select("id, active");
+
+      if (error) {
+        console.error(`Error marking server ${serverId} as inactive: ${error.message}`);
+        return false;
+      }
+
+      // Clear server config cache
+      this.clearCache(`server_config_${serverIdStr}`);
+
+      return true;
+    } catch (error) {
+      console.error(`Error marking server ${serverId} as inactive: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Reconcile active servers in database with bot's current guilds
+   * This helps ensure servers stay in sync even if events fail
+   * @param {Array<string>} currentGuildIds - Array of guild IDs the bot is currently in
+   * @returns {Promise<{deactivated: number, errors: number}>} - Count of deactivated servers and errors
+   */
+  async reconcileActiveServers(currentGuildIds) {
+    try {
+      console.log(`[ApiService] Reconciling active servers with ${currentGuildIds.length} current guilds`);
+
+      // Ensure all IDs are strings
+      const botGuildIds = currentGuildIds.map((id) => (typeof id === "bigint" ? id.toString() : String(id)));
+
+      // Get all servers marked as active in the database
+      const { data: activeServers, error } = await this.supabase.from("servers").select("id, name").eq("active", true);
+
+      if (error) {
+        console.error("[ApiService] Error fetching active servers:", error);
+        return { deactivated: 0, errors: 1 };
+      }
+
+      console.log(`[ApiService] Found ${activeServers?.length || 0} active servers in database`);
+
+      if (!activeServers || activeServers.length === 0) {
+        return { deactivated: 0, errors: 0 };
+      }
+
+      // Track results
+      let deactivatedCount = 0;
+      let errorCount = 0;
+
+      // Check each active server
+      for (const server of activeServers) {
+        // If the bot is not in this guild anymore, mark it inactive
+        if (!botGuildIds.includes(server.id)) {
+          console.log(`[ApiService] Bot not in server ${server.name} (${server.id}), marking as inactive`);
+          try {
+            const { error: updateError } = await this.supabase
+              .from("servers")
+              .update({ active: false })
+              .eq("id", server.id);
+
+            if (updateError) {
+              console.error(`[ApiService] Error marking server ${server.id} as inactive:`, updateError);
+              errorCount++;
+            } else {
+              console.log(`[ApiService] Successfully marked server ${server.name} (${server.id}) as inactive`);
+              deactivatedCount++;
+
+              // Clear server config cache
+              this.clearCache(`server_config_${server.id}`);
+            }
+          } catch (err) {
+            console.error(`[ApiService] Exception marking server ${server.id} as inactive:`, err);
+            errorCount++;
+          }
+        }
+      }
+
+      console.log(`[ApiService] Reconciliation complete. Deactivated: ${deactivatedCount}, Errors: ${errorCount}`);
+      return { deactivated: deactivatedCount, errors: errorCount };
+    } catch (error) {
+      console.error("[ApiService] Error reconciling active servers:", error);
+      return { deactivated: 0, errors: 1 };
+    }
+  }
+
+  /**
+   * Mark a server as active in the database when bot is reinstalled
+   * @param {string} serverId - Discord server ID
+   * @returns {Promise<Object>} - Updated server data
+   */
+  async markServerAsActive(serverId) {
+    try {
+      const serverIdStr = typeof serverId === "bigint" ? serverId.toString() : serverId;
+      console.log(`=== ACTIVATING SERVER ${serverIdStr} ===`);
+
+      // First clear cache to ensure fresh data
+      this.clearCache(`server_config_${serverIdStr}`);
+
+      // Direct database update - simplest and most reliable approach
+      const { data, error } = await this.supabase
+        .from("servers")
+        .update({ active: true })
+        .eq("id", serverIdStr)
+        .select("id, name, active, config, icon_url")
+        .single();
+
+      if (error) {
+        console.error(`Error activating server ${serverIdStr}: ${error.message}`);
+        throw error;
+      }
+
+      // Log the results
+      console.log(`Server ${serverIdStr} active status set to: ${data.active}`);
+
+      // Invalidate any cached data
+      this.invalidateServerCache(serverId);
+
+      // Return the updated server data in the same format as other methods
+      return {
+        id: data.id,
+        name: data.name,
+        iconUrl: data.icon_url,
+        active: data.active,
+        config: data.config,
+      };
+    } catch (error) {
+      console.error(`Failed to activate server ${serverId}: ${error.message}`);
+      throw error;
     }
   }
 }

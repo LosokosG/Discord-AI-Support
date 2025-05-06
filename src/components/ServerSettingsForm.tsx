@@ -52,6 +52,8 @@ interface ServerSettingsFormProps {
   availableRoles: RoleOption[];
   // Dodajemy możliwość przekazania początkowych błędów walidacji
   initialErrors?: FieldError[];
+  // Add disabled prop
+  disabled?: boolean;
 }
 
 // Form validation schema using zod
@@ -80,6 +82,7 @@ export const ServerSettingsForm = ({
   availableChannels,
   availableRoles,
   initialErrors = [],
+  disabled = false,
 }: ServerSettingsFormProps) => {
   // Initialize the form with react-hook-form and zod - Use ViewModel directly
   const form = useForm<ServerSettingsViewModel>({
@@ -116,7 +119,7 @@ export const ServerSettingsForm = ({
   return (
     <Form {...form}>
       {/* @ts-expect-error - Form's handleSubmit type mismatch with our handler */}
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className={`space-y-8 ${disabled ? 'opacity-75' : ''}`}>
         {/* Sekcja: Status & Język */}
         <div className="space-y-6">
           <div className="border-b pb-2">
@@ -136,7 +139,7 @@ export const ServerSettingsForm = ({
                   <FormDescription>Enable or disable the bot for this server</FormDescription>
                 </div>
                 <FormControl>
-                  <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isLoading} />
+                  <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isLoading || disabled} />
                 </FormControl>
               </FormItem>
             )}
@@ -150,7 +153,7 @@ export const ServerSettingsForm = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Language</FormLabel>
-                <Select disabled={isLoading} onValueChange={field.onChange} defaultValue={field.value}>
+                <Select disabled={isLoading || disabled} onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a language" />
@@ -188,7 +191,7 @@ export const ServerSettingsForm = ({
                   <Textarea
                     placeholder="Enter custom instructions for the AI..."
                     className="min-h-32 font-mono text-sm"
-                    disabled={isLoading}
+                    disabled={isLoading || disabled}
                     {...field}
                     value={field.value || ""}
                   />
@@ -554,7 +557,7 @@ export const ServerSettingsForm = ({
 
         {/* Submit Button */}
         <div className="flex justify-end border-t pt-6">
-          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+          <Button type="submit" disabled={isLoading || disabled} className="w-full sm:w-auto">
             {isLoading ? "Saving..." : "Save Settings"}
           </Button>
         </div>

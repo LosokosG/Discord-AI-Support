@@ -2,12 +2,17 @@ import { Client, GatewayIntentBits, Collection } from "discord.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+import apiService from "./services/api.js";
 
 // Dla ESLint
 /* global process, console, URL */
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Load environment variables
+dotenv.config();
 
 // Initialize Discord client with necessary intents
 // Uwaga: Niektóre intencje wymagają włączenia na https://discord.com/developers/applications
@@ -22,6 +27,14 @@ const client = new Client({
 // Collections for commands
 client.commands = new Collection();
 client.buttons = new Collection();
+
+// Initialize global guild cache if it doesn't exist
+if (typeof global === "undefined") {
+  global = {};
+}
+if (!global.cachedGuilds) {
+  global.cachedGuilds = new Map();
+}
 
 // Load events
 const eventsPath = path.join(__dirname, "events");
@@ -113,5 +126,79 @@ if (!TOKEN) {
 }
 
 client.login(TOKEN);
+
+// When the bot joins a new guild, add it to our cache
+client.on("guildCreate", async (guild) => {
+  if (guild && guild.id) {
+    console.log(`Tracking new guild: ${guild.name} (${guild.id})`);
+
+    // Update global cache
+    global.cachedGuilds.set(guild.id, { name: guild.name, id: guild.id });
+
+    // Ensure server is active in database regardless of handler execution
+    try {
+      const guildId = String(guild.id);
+      const exists = await apiService.serverExists(guildId);
+
+      if (exists) {
+        // Directly update active status in database
+        await apiService.supabase.from("servers").update({ active: true }).eq("id", guildId);
+
+        // Clear cache
+        apiService.invalidateServerCache(guildId);
+        console.log(`[bot.js] Ensured server ${guildId} is marked as active`);
+      }
+    } catch (error) {
+      console.error(`Error updating server status in guildCreate listener: ${error.message}`);
+    }
+  }
+});
+
+// When a guildDelete event fires, we might not get valid guild data
+// Compare the cached guilds with current ones to detect which one the bot was kicked from
+client.on("guildDelete", async () => {
+  try {
+    // Get current guilds
+    const currentGuilds = new Map();
+    client.guilds.cache.forEach((guild) => {
+      currentGuilds.set(guild.id, guild);
+    });
+
+    // Make sure global.cachedGuilds exists
+    if (!global.cachedGuilds) {
+      return;
+    }
+
+    // Find guilds that were in the cache but are not in current list
+    let removedGuilds = [];
+    global.cachedGuilds.forEach((guild, guildId) => {
+      if (!currentGuilds.has(guildId)) {
+        removedGuilds.push(guild);
+      }
+    });
+
+    // Update cache to match current state
+    global.cachedGuilds.clear();
+    currentGuilds.forEach((guild) => {
+      global.cachedGuilds.set(guild.id, { name: guild.name, id: guild.id });
+    });
+
+    // Process removed guilds - only log number, not details
+    if (removedGuilds.length > 0) {
+      console.log(`Bot removed from ${removedGuilds.length} server(s)`);
+
+      // Process each removed guild
+      for (const guild of removedGuilds) {
+        if (guild && guild.id) {
+          // Mark server as inactive in database
+          await apiService.markServerAsInactive(guild.id);
+        }
+      }
+    }
+  } catch (error) {
+    // Simple error logging
+    console.error(`Guild tracking error: ${error.message}`);
+  }
+});
 
 export default client;

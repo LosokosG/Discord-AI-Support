@@ -3,16 +3,28 @@
 
 import DashboardLayout from "@/layouts/DashboardLayout.astro";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
-import { MessageSquare, Database, Settings, ExternalLink, Users, Clock, Bot, BarChart, Server } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  MessageSquare,
+  Database,
+  Settings,
+  ExternalLink,
+  Users,
+  Clock,
+  Bot,
+  BarChart,
+  Server,
+  PlusCircle,
+  AlertTriangle,
+} from "lucide-react";
 import { getServerById, getAllServers } from "@/lib/services/serverService";
 import type { ServerData } from "@/lib/services/serverService";
 
 const { id } = Astro.params;
-// Wyświetl ID serwera do celów debugowania
+// Display server ID for debugging
 console.log("Server ID from params:", id);
 
-// Pobierz dane serwera z bazy danych
+// Get server data from database
 let server: ServerData | null = null;
 let connectionError = false;
 
@@ -22,7 +34,7 @@ if (!id) {
 }
 
 try {
-  // Pobierz serwer z bazy danych
+  // Get server from database
   server = await getServerById(id);
   if (!server) {
     console.log("Server not found, redirecting to dashboard");
@@ -37,8 +49,39 @@ try {
 // Server must exist at this point due to the redirect above
 const serverName = server!.name;
 const serverIcon = server!.icon_url;
+const isActive = server!.active;
 
-// Domyślne statystyki dla dashboardu (w przyszłości mogą być pobierane z rzeczywistych danych)
+// Generate Discord OAuth URL for bot reinstall
+const getAddBotUrl = (serverId: string, serverName: string, serverIcon: string | null) => {
+  // Get the current site's origin for redirect URL
+  const origin = Astro.url.origin;
+  const redirectUri = `${origin}/auth/bot-callback`;
+
+  // Encode server information in the state parameter
+  const state = encodeURIComponent(
+    JSON.stringify({
+      guild_id: serverId,
+      guild_name: serverName,
+      guild_icon: serverIcon,
+    })
+  );
+
+  // Standard Discord bot add URL with server pre-selected and our callback
+  const url =
+    `https://discord.com/api/oauth2/authorize` +
+    `?client_id=${import.meta.env.PUBLIC_DISCORD_CLIENT_ID}` +
+    `&permissions=8` +
+    `&scope=bot%20applications.commands` +
+    `&guild_id=${serverId}` +
+    `&disable_guild_select=true` +
+    `&response_type=code` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&state=${state}`;
+
+  return url;
+};
+
+// Default stats for dashboard (in the future these may be retrieved from actual data)
 const stats = {
   knowledgeEntries: 0, // Default value
   conversations: 0, // Default value
@@ -49,7 +92,7 @@ const stats = {
 };
 
 // If server.config exists and has knowledge/stats data, use it
-if (server.config && typeof server.config === "object") {
+if (server && server.config && typeof server.config === "object") {
   const config = server.config as Record<string, unknown>;
 
   if (config.knowledge && typeof config.knowledge === "object") {
@@ -63,7 +106,7 @@ if (server.config && typeof server.config === "object") {
   }
 }
 
-// Pobierz listę dostępnych serwerów do selektora
+// Get list of available servers for selector
 let availableServers: ServerData[] = [];
 try {
   availableServers = await getAllServers();
@@ -71,7 +114,7 @@ try {
   console.error("Failed to fetch servers list:", err);
 }
 
-// Mock username - w rzeczywistej aplikacji, powinno pochodzić z autentykacji
+// Mock username - in a real application, this should come from authentication
 const username = "Discord Admin";
 ---
 
@@ -88,6 +131,29 @@ const username = "Discord Admin";
         connectionError && (
           <div class="bg-discord-red/10 text-discord-red p-3 rounded-md mb-4">
             Error connecting to the database. Some data may not be displayed correctly.
+          </div>
+        )
+      }
+
+      {
+        !isActive && (
+          <div class="bg-amber-100 text-amber-800 p-4 rounded-md mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 mt-0.5" />
+              <div>
+                <h3 class="font-semibold">Bot is not active in this server</h3>
+                <p class="text-sm">
+                  The bot appears to have been removed from this server. You can view configurations but changes won't
+                  apply until the bot is reinstalled.
+                </p>
+              </div>
+            </div>
+            <a href={getAddBotUrl(id, serverName, serverIcon)} class="whitespace-nowrap">
+              <Button className="gap-2 bg-amber-600 hover:bg-amber-700">
+                <PlusCircle className="h-4 w-4" />
+                Reinstall Bot
+              </Button>
+            </a>
           </div>
         )
       }
@@ -125,13 +191,11 @@ const username = "Discord Admin";
         <CardContent>
           <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <a
-              href="javascript:void(0);"
-              onclick={`window.location.href = '/dashboard/servers/${id}/knowledge';`}
+              href={isActive ? `/dashboard/servers/${id}/knowledge` : "javascript:void(0);"}
               class={buttonVariants({
                 variant: "outline",
                 size: "lg",
-                class:
-                  "justify-start bg-gradient-to-r from-[#5865F2] to-[#7983F5] border-none text-white hover:opacity-90 shadow-md h-14 text-base",
+                class: `justify-start bg-gradient-to-r ${isActive ? "from-[#5865F2] to-[#7983F5]" : "from-gray-400 to-gray-500"} border-none text-white hover:opacity-90 shadow-md h-14 text-base ${!isActive ? "cursor-not-allowed opacity-70" : ""}`,
               })}
             >
               <Database className="mr-3 h-5 w-5" />
@@ -142,8 +206,7 @@ const username = "Discord Admin";
               class={buttonVariants({
                 variant: "outline",
                 size: "lg",
-                class:
-                  "justify-start bg-gradient-to-r from-[#5865F2] to-[#7983F5] border-none text-white hover:opacity-90 shadow-md h-14 text-base",
+                class: `justify-start bg-gradient-to-r ${isActive ? "from-[#5865F2] to-[#7983F5]" : "from-gray-400 to-gray-500"} border-none text-white hover:opacity-90 shadow-md h-14 text-base`,
               })}
             >
               <Settings className="mr-3 h-5 w-5" />

@@ -56,6 +56,11 @@ export async function listServers(options: ListServersOptions, supabaseClient: S
  * @throws {Error} If the server with the given id already exists or if database operation fails
  */
 export async function createServer(command: CreateServerCommand, supabaseClient: SupabaseClient): Promise<Server> {
+  console.log("📊 [createServer] Starting server creation process", {
+    id: command.id,
+    name: command.name,
+  });
+  
   // Prepare the data in DB format (snake_case)
   const serverData = {
     id: command.id.toString(), // Store Discord IDs as strings to preserve precision
@@ -65,25 +70,48 @@ export async function createServer(command: CreateServerCommand, supabaseClient:
     active: true, // New servers are active by default
   };
 
-  // Insert the server into the database
-  const { data, error } = await supabaseClient.from("servers").insert(serverData).select().single();
-
-  if (error) {
-    // Check if it's a unique constraint violation (server already exists)
-    if (error.code === "23505") {
-      throw new Error(`Server with ID ${command.id} already exists`);
+  console.log("📊 [createServer] Prepared server data:", serverData);
+  
+  try {
+    // Validate that Supabase client is properly initialized
+    if (!supabaseClient || typeof supabaseClient.from !== 'function') {
+      console.error("📊 [createServer] Invalid Supabase client:", supabaseClient);
+      throw new Error("Invalid Supabase client");
     }
+    
+    console.log("📊 [createServer] Executing database insert");
+    // Insert the server into the database
+    const { data, error } = await supabaseClient.from("servers").insert(serverData).select().single();
+
+    if (error) {
+      console.error("📊 [createServer] Database error:", error);
+      // Check if it's a unique constraint violation (server already exists)
+      if (error.code === "23505") {
+        console.log("📊 [createServer] Server already exists:", command.id);
+        throw new Error(`Server with ID ${command.id} already exists`);
+      }
+      throw error;
+    }
+
+    if (!data) {
+      console.error("📊 [createServer] No data returned after insert");
+      throw new Error("Server creation failed: No data returned");
+    }
+
+    console.log("📊 [createServer] Server created successfully:", data);
+
+    // Transform snake_case DB result to camelCase for the API response
+    return {
+      id: data.id,
+      name: data.name,
+      iconUrl: data.icon_url,
+      active: data.active,
+      config: data.config,
+    } as Server;
+  } catch (error) {
+    console.error("📊 [createServer] Unexpected error:", error);
     throw error;
   }
-
-  // Transform snake_case DB result to camelCase for the API response
-  return {
-    id: data.id,
-    name: data.name,
-    iconUrl: data.icon_url,
-    active: data.active,
-    config: data.config,
-  } as Server;
 }
 
 /**

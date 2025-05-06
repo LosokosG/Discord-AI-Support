@@ -302,6 +302,24 @@ export const ServerSettingsView = ({ serverId }: { serverId: string }) => {
         </div>
       )}
 
+      {!serverData.active && (
+        <div className="bg-amber-100 text-amber-800 p-4 rounded-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="h-5 w-5 mt-0.5">⚠️</div>
+            <div>
+              <h3 className="font-semibold">Bot not active in this server</h3>
+              <p className="text-sm">The bot appears to have been removed from this server. You can view settings but changes won't apply until the bot is reinstalled.</p>
+            </div>
+          </div>
+          <a 
+            href={`/dashboard/servers/${serverId}`} 
+            className="whitespace-nowrap px-4 py-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium"
+          >
+            Back to dashboard
+          </a>
+        </div>
+      )}
+
       <ServerSettingsForm
         initialData={viewModel}
         onSubmit={handleSave}
@@ -309,6 +327,7 @@ export const ServerSettingsView = ({ serverId }: { serverId: string }) => {
         availableChannels={availableChannels}
         availableRoles={availableRoles}
         initialErrors={fieldErrors}
+        disabled={!serverData.active}
       />
     </div>
   );

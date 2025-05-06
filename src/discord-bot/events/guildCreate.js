@@ -7,24 +7,45 @@ import apiService from "../services/api.js";
 export default {
   name: "guildCreate",
   once: false, // This event can occur multiple times
-  async execute(guild) {
+  async execute(client, guild) {
     try {
-      console.log(`Bot joined a new server: ${guild.name} (${guild.id})`);
+      // Validate guild received - be very lenient
+      if (!guild) {
+        console.error("No guild object provided to guildCreate event handler");
+        return;
+      }
 
-      // Register the server in the database
-      const serverData = await apiService.ensureServerExists(guild);
+      // Handle missing ID as best we can
+      if (!guild.id) {
+        console.error("Guild object doesn't have an ID property");
+        return;
+      }
 
-      console.log(
-        `Server ${guild.name} (${guild.id}) registered successfully in the database. Active: ${serverData.active}`
-      );
+      // Convert guild ID to string regardless of type
+      const guildId = String(guild.id);
+      const guildName = guild.name || `Unknown Server ${guildId}`;
 
-      // Log some basic information about the server
-      console.log(`Server details:
-        - Members: ${guild.memberCount}
-        - Owner: ${guild.ownerId}
-        - Created: ${guild.createdAt}
-        - Features: ${guild.features.join(", ") || "None"}
-      `);
+      console.log(`=== BOT JOINED SERVER: ${guildName} (${guildId}) ===`);
+
+      // Check if this server already exists in our database
+      const exists = await apiService.serverExists(guildId);
+
+      if (exists) {
+        // Server exists - just update active status
+        try {
+          await apiService.supabase.from("servers").update({ active: true }).eq("id", guildId);
+
+          // Clear cache
+          apiService.invalidateServerCache(guildId);
+          console.log(`Server ${guildName} (${guildId}) marked as active`);
+        } catch (error) {
+          console.error(`Error updating active status: ${error.message}`);
+        }
+      } else {
+        // New server - register it
+        console.log(`Server ${guildName} (${guildId}) is new - registering in database`);
+        await apiService.ensureServerExists(guild);
+      }
 
       // Optional: Send a welcome message to the system channel or first available text channel
       const systemChannel = guild.systemChannel;
@@ -50,7 +71,7 @@ To get started, use the \`/ask\` command to ask me anything.`,
         }
       }
     } catch (error) {
-      console.error(`Error handling guildCreate event for server ${guild.id}:`, error);
+      console.error(`Error in guildCreate handler: ${error.message}`);
     }
   },
 };
