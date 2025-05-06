@@ -1,5 +1,5 @@
 ---
-description: 
+description: Creating tests with Vitest
 globs: 
 alwaysApply: false
 ---
