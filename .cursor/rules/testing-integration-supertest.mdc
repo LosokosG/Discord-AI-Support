@@ -1,0 +1,16 @@
+---
+description: Creating tests with Supertest
+globs: 
+alwaysApply: false
+---
+## TESTING
+
+### Guidelines for INTEGRATION
+
+#### SUPERTEST
+
+- Use async/await with supertest for cleaner test code
+- Implement a test database for integration tests
+- Use beforeEach/afterEach hooks for database setup and teardown when testing {{api_endpoints}}
+
+

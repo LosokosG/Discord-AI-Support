@@ -53,6 +53,15 @@ Discord AI Support Bot automates first-line technical support on Discord servers
   - Google models
   - Others
 
+### Testing
+- **Unit Testing**:
+  - Vitest/Jest for testing JavaScript/TypeScript code
+  - React Testing Library (RTL) for testing React components
+- **End-to-End Testing**:
+  - Playwright for testing the admin panel UI
+  - Custom Node.js scripts with DiscordJS for bot interaction testing
+  - Supertest for API testing
+
 ### CI/CD & Hosting
 - **GitHub Actions** for CI/CD pipelines
 - **DigitalOcean** for hosting via Docker

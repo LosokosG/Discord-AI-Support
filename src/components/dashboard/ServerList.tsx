@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import React, { useState, useEffect } from "react";
 import {
-  Server2,
+  Server,
   Settings,
   BookOpen,
   PlusCircle,
@@ -16,18 +16,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAppState } from "@/components/hooks/useAppState";
 import { useSupabase } from "@/components/hooks/useSupabase";
 import { getServers } from "@/lib/services/api";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 
 interface Server {
   id: string;
   name: string;
-  icon_url: string | null;
-  permissions: string;
-  has_bot: boolean;
-  is_admin: boolean;
+  iconUrl: string | null;
+  permissions?: string;
+  active: boolean;
+  is_admin?: boolean;
 }
 
 export default function ServerList() {
@@ -35,7 +36,6 @@ export default function ServerList() {
   const supabase = useSupabase();
   const [page, setPage] = useState(1);
   const pageSize = 6; // Number of servers per page
-  const [servers, setServersState] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,25 +45,10 @@ export default function ServerList() {
     async function loadServers() {
       if (!supabase) return;
 
-      setServersLoading(true);
-      try {
-        const serverList = await getServers(supabase, { page, pageSize });
-        setServers(serverList);
-      } catch (error) {
-        console.error("Error loading servers:", error);
-        setServersError("Failed to load servers. Please try again later.");
-        toast.error("Failed to load servers. Please try again later.");
-      }
-    }
-
-    loadServers();
-  }, [supabase, page, setServers, setServersLoading, setServersError]);
-
-  useEffect(() => {
-    const fetchServers = async () => {
       try {
         setLoading(true);
         setError(null);
+        setServersLoading(true);
 
         const response = await fetch("/api/servers/list");
 
@@ -73,17 +58,25 @@ export default function ServerList() {
         }
 
         const data = await response.json();
-        setServersState(data.guilds);
+        
+        // Update both local and global state
+        setServers(data);
+        setLoading(false);
+        setServersLoading(false);
       } catch (err) {
         console.error("Error fetching servers:", err);
-        setError(err instanceof Error ? err.message : "Wystąpił nieznany błąd");
+        const errorMessage = err instanceof Error ? err.message : "Wystąpił nieznany błąd";
+        setError(errorMessage);
+        setServersError(errorMessage);
+        toast.error("Failed to load servers. Please try again later.");
       } finally {
         setLoading(false);
+        setServersLoading(false);
       }
-    };
+    }
 
-    fetchServers();
-  }, []);
+    loadServers();
+  }, [supabase, page, setServers, setServersLoading, setServersError]);
 
   // Handle pagination
   const handlePrevPage = () => {
@@ -98,17 +91,20 @@ export default function ServerList() {
     }
   };
 
-  // Filtrowanie serwerów na podstawie wyszukiwania
-  const filteredServers = servers.filter((server) => server.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Filter servers based on search query
+  const filteredServers = state.servers?.data ? 
+    state.servers.data.filter((server) => 
+      server.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ) : [];
 
-  // Sortowanie serwerów: najpierw te z botem, potem reszta
+  // Sort servers: those with bot first, then the rest
   const sortedServers = [...filteredServers].sort((a, b) => {
-    if (a.has_bot && !b.has_bot) return -1;
-    if (!a.has_bot && b.has_bot) return 1;
+    if (a.active && !b.active) return -1;
+    if (!a.active && b.active) return 1;
     return a.name.localeCompare(b.name);
   });
 
-  // Funkcja generująca kolor tła dla avatara serwera bez ikony
+  // Function to generate background color for server avatar without icon
   const getServerColor = (id: string) => {
     const colors = [
       "bg-[#5865F2]", // Discord Blurple
@@ -123,7 +119,7 @@ export default function ServerList() {
     return colors[colorIndex];
   };
 
-  // Renderowanie skeletonów podczas ładowania
+  // Rendering skeletons during loading
   if (loading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 p-4">
@@ -142,7 +138,7 @@ export default function ServerList() {
     );
   }
 
-  // Wyświetlanie błędu
+  // Display error
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -170,14 +166,14 @@ export default function ServerList() {
         </a>
       </div>
 
-      {/* Wyszukiwarka */}
+      {/* Search */}
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Szukaj serwerów..."
           className="pl-10"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
         />
       </div>
 
@@ -195,7 +191,7 @@ export default function ServerList() {
         </div>
       ) : state.servers?.data.length === 0 ? (
         <div className="text-center py-12 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-dashed border-neutral-200 dark:border-neutral-800">
-          <Server2 className="mx-auto h-12 w-12 text-neutral-400" />
+          <Server className="mx-auto h-12 w-12 text-neutral-400" />
           <h3 className="mt-4 text-lg font-semibold">No servers found</h3>
           <p className="mt-2 text-neutral-600 dark:text-neutral-400">
             Get started by adding your first Discord server.
@@ -216,19 +212,19 @@ export default function ServerList() {
                 key={server.id}
                 className={cn(
                   "border rounded-lg p-4 transition-all duration-200",
-                  server.has_bot ? "bg-background hover:border-primary cursor-pointer" : "bg-muted/30 border-dashed"
+                  server.active ? "bg-background hover:border-primary cursor-pointer" : "bg-muted/30 border-dashed"
                 )}
                 onClick={() => {
-                  if (server.has_bot) {
+                  if (server.active) {
                     window.location.href = `/dashboard/servers/${server.id}`;
                   }
                 }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <Avatar className={cn("h-12 w-12", !server.icon_url && getServerColor(server.id))}>
-                      {server.icon_url ? (
-                        <AvatarImage src={server.icon_url} alt={server.name} />
+                    <Avatar className={cn("h-12 w-12", !server.iconUrl && getServerColor(server.id))}>
+                      {server.iconUrl ? (
+                        <AvatarImage src={server.iconUrl} alt={server.name} />
                       ) : (
                         <AvatarFallback>{server.name.charAt(0).toUpperCase()}</AvatarFallback>
                       )}
@@ -242,7 +238,7 @@ export default function ServerList() {
                     </div>
                   </div>
 
-                  {!server.has_bot && (
+                  {!server.active && (
                     <div className="flex flex-col items-end">
                       <CircleSlashed className="h-5 w-5 text-muted-foreground mb-1" />
                       <a
@@ -258,7 +254,7 @@ export default function ServerList() {
                   )}
                 </div>
 
-                {server.has_bot && (
+                {server.active && (
                   <div className="mt-2 text-right">
                     <span className="inline-flex items-center justify-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
                       Bot aktywny
@@ -266,7 +262,7 @@ export default function ServerList() {
                   </div>
                 )}
 
-                {!server.has_bot && (
+                {!server.active && (
                   <div className="mt-4 p-2 bg-muted/50 rounded text-xs text-muted-foreground text-center">
                     Bot nie jest zainstalowany na tym serwerze
                   </div>

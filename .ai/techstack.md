@@ -19,7 +19,7 @@ AI - Komunikacja z modelami przez usługę Openrouter.ai:
 - Pozwala na ustawianie limitów finansowych na klucze API
 
 CI/CD i Hosting:
-- Github Actions do tworzenia pipeline’ów CI/CD
+- Github Actions do tworzenia pipeline'ów CI/CD
 - DigitalOcean do hostowania aplikacji za pośrednictwem obrazu docker 
 
 Bot Discord - DiscordJS:
@@ -27,3 +27,12 @@ Bot Discord - DiscordJS:
 * Dobrze udokumentowana biblioteka
 * Działa z Type Script
 * Prosty
+
+Testowanie:
+* Testy Jednostkowe:
+  - Vitest/Jest - nowoczesne i szybkie frameworki do testów jednostkowych JavaScript/TypeScript
+  - React Testing Library - narzędzie do testowania komponentów React w sposób przypominający interakcje użytkownika
+* Testy End-to-End (E2E):
+  - Playwright - narzędzie do automatyzacji testów przeglądarki, pozwalające na testowanie pełnych przepływów w aplikacji
+  - Niestandardowe skrypty Node.js z DiscordJS - do testowania interakcji bota na serwerach testowych
+  - Supertest - biblioteka do testowania API HTTP
