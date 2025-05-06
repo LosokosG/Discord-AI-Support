@@ -10,10 +10,9 @@ interface DrawerProps {
   activeItemId?: string;
   isOpen: boolean;
   onClose: () => void;
-  serverId?: string;
 }
 
-export default function Drawer({ items, activeItemId, isOpen: initialIsOpen, onClose, serverId }: DrawerProps) {
+export default function Drawer({ items, activeItemId, isOpen: initialIsOpen, onClose }: DrawerProps) {
   // Wewnętrzny stan, kontrolowany przez zdarzenia z DashboardLayout
   const [isDrawerOpen, setIsDrawerOpen] = useState(initialIsOpen);
 

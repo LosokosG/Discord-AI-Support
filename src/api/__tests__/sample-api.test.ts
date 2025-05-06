@@ -1,15 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import request from "supertest";
 
 // Zamiast importu express, używamy prostego obiektu dla testów
 // Będzie zastąpiony rzeczywistą aplikacją podczas implementacji testów
 const mockApp = {
-  get: (path: string, callback: Function) => {
-    return {
-      status: 200,
-      body: { data: "example data" },
-    };
-  },
+  get: () => ({
+    status: 200,
+    body: { data: "example data" },
+  }),
 };
 
 describe("API Endpoints", () => {
@@ -29,7 +26,7 @@ describe("API Endpoints", () => {
   describe("GET /api/example", () => {
     it("should return 200 OK with correct data", async () => {
       // Przykładowy test - w rzeczywistej implementacji będzie używać supertest
-      const mockResponse = mockApp.get("/api/example", () => {});
+      const mockResponse = mockApp.get();
 
       expect(mockResponse.status).toBe(200);
       expect(mockResponse.body).toHaveProperty("data");

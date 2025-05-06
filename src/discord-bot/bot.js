@@ -30,9 +30,12 @@ client.buttons = new Collection();
 
 // Initialize global guild cache if it doesn't exist
 if (typeof global === "undefined") {
+  // eslint-disable-next-line no-undef
   global = {};
 }
+// eslint-disable-next-line no-undef
 if (!global.cachedGuilds) {
+  // eslint-disable-next-line no-undef
   global.cachedGuilds = new Map();
 }
 
@@ -133,6 +136,7 @@ client.on("guildCreate", async (guild) => {
     console.log(`Tracking new guild: ${guild.name} (${guild.id})`);
 
     // Update global cache
+    // eslint-disable-next-line no-undef
     global.cachedGuilds.set(guild.id, { name: guild.name, id: guild.id });
 
     // Ensure server is active in database regardless of handler execution
@@ -165,12 +169,14 @@ client.on("guildDelete", async () => {
     });
 
     // Make sure global.cachedGuilds exists
+    // eslint-disable-next-line no-undef
     if (!global.cachedGuilds) {
       return;
     }
 
     // Find guilds that were in the cache but are not in current list
     let removedGuilds = [];
+    // eslint-disable-next-line no-undef
     global.cachedGuilds.forEach((guild, guildId) => {
       if (!currentGuilds.has(guildId)) {
         removedGuilds.push(guild);
@@ -178,8 +184,10 @@ client.on("guildDelete", async () => {
     });
 
     // Update cache to match current state
+    // eslint-disable-next-line no-undef
     global.cachedGuilds.clear();
     currentGuilds.forEach((guild) => {
+      // eslint-disable-next-line no-undef
       global.cachedGuilds.set(guild.id, { name: guild.name, id: guild.id });
     });
 

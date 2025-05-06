@@ -1,21 +1,9 @@
 /* eslint-disable no-console */
 import React, { useState, useEffect } from "react";
-import {
-  Server,
-  Settings,
-  BookOpen,
-  PlusCircle,
-  Loader2,
-  Search,
-  ServerOff,
-  Shield,
-  CircleSlashed,
-} from "lucide-react";
+import { Server, PlusCircle, Loader2, Search, ServerOff, Shield, CircleSlashed } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { useAppState } from "@/components/hooks/useAppState";
 import { useSupabase } from "@/components/hooks/useSupabase";
-import { getServers } from "@/lib/services/api";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -207,17 +195,18 @@ export default function ServerList() {
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {sortedServers.map((server) => (
-              <div
+              <a
                 key={server.id}
+                href={server.active ? `/dashboard/servers/${server.id}` : undefined}
                 className={cn(
-                  "border rounded-lg p-4 transition-all duration-200",
-                  server.active ? "bg-background hover:border-primary cursor-pointer" : "bg-muted/30 border-dashed"
+                  "border rounded-lg p-4 transition-all duration-200 block",
+                  server.active
+                    ? "bg-background hover:border-primary cursor-pointer"
+                    : "bg-muted/30 border-dashed pointer-events-none"
                 )}
-                onClick={() => {
-                  if (server.active) {
-                    window.location.href = `/dashboard/servers/${server.id}`;
-                  }
-                }}
+                aria-disabled={!server.active}
+                role="button"
+                tabIndex={server.active ? 0 : -1}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -266,7 +255,7 @@ export default function ServerList() {
                     Bot nie jest zainstalowany na tym serwerze
                   </div>
                 )}
-              </div>
+              </a>
             ))}
           </div>
 

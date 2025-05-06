@@ -1,5 +1,3 @@
-import apiService from "../services/api.js";
-
 /**
  * Event handler for when the bot is removed from a guild (server)
  * This marks the server as inactive in the database

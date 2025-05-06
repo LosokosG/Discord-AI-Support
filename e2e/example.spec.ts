@@ -1,8 +1,9 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 // Example page object
 class HomePage {
-  constructor(private page: any) {}
+  constructor(private page: Page) {}
 
   async navigate() {
     await this.page.goto("/");

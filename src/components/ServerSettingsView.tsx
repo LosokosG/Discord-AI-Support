@@ -309,8 +309,8 @@ export const ServerSettingsView = ({ serverId }: { serverId: string }) => {
             <div>
               <h3 className="font-semibold">Bot not active in this server</h3>
               <p className="text-sm">
-                The bot appears to have been removed from this server. You can view settings but changes won't apply
-                until the bot is reinstalled.
+                The bot appears to have been removed from this server. You can view settings but changes won&apos;t
+                apply until the bot is reinstalled.
               </p>
             </div>
           </div>

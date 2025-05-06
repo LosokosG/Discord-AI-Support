@@ -56,7 +56,7 @@ function useDocumentForm(initialData?: DocumentFormProps["initialData"]) {
   };
 }
 
-export default function DocumentForm({ action, method = "POST", serverId, initialData }: DocumentFormProps) {
+export default function DocumentForm({ serverId, initialData }: DocumentFormProps) {
   const isEditing = Boolean(initialData?.id);
   const { form, content, fileType, isSubmitting } = useDocumentForm(initialData);
   const [submitError, setSubmitError] = useState<string | null>(null);

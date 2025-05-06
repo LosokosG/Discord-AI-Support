@@ -29,7 +29,7 @@ export default {
         )
     ),
 
-  async execute(interaction, client) {
+  async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
 
     const channel = interaction.options.getChannel("channel");

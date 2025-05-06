@@ -286,7 +286,7 @@ Feel free to edit or delete this document.`,
       }
 
       // Server exists - update active status
-      const { data, error } = await this.supabase
+      const { error } = await this.supabase
         .from("servers")
         .update({ active: true })
         .eq("id", serverIdStr)
@@ -1443,7 +1443,7 @@ Feel free to edit or delete this document.`,
     try {
       const serverIdStr = typeof serverId === "bigint" ? serverId.toString() : serverId;
 
-      const { data, error } = await this.supabase
+      const { error } = await this.supabase
         .from("servers")
         .update({ active: false })
         .eq("id", serverIdStr)

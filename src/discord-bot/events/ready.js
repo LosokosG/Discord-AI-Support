@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 /* eslint-disable no-console */
 import { Events } from "discord.js";
 import apiService from "../services/api.js";
@@ -57,6 +58,7 @@ export default {
               registeredCount++;
             }
           }
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
           errorCount++;
         }

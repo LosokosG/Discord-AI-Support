@@ -8,7 +8,8 @@ export interface ServerData {
   name: string;
   active: boolean;
   icon_url: string | null;
-  config?: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  config?: any;
   created_at: string;
 }
 
@@ -37,7 +38,7 @@ export async function getServerById(id: string): Promise<ServerData | null> {
     }
 
     console.log("Server data from database:", data);
-    return data;
+    return data as ServerData;
   } catch (err) {
     console.error("Failed to fetch server:", err);
     return null;
@@ -59,7 +60,7 @@ export async function getAllServers(): Promise<ServerData[]> {
       return [];
     }
 
-    return data || [];
+    return (data || []) as ServerData[];
   } catch (err) {
     console.error("Failed to fetch servers:", err);
     return [];

@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+/* global console */
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from "discord.js";
 import apiService from "../services/api.js";
 

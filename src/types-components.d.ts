@@ -17,9 +17,12 @@ declare module "@/components/dashboard/Topbar" {
   import { FC } from "react";
 
   export interface TopbarProps {
-    onToggle: () => void;
+    title?: string;
+    onToggle?: () => void;
     serverName?: string;
     serverIcon?: string;
+    serverStatus?: "online" | "offline" | "maintenance" | "unknown";
+    username?: string;
   }
 
   const Topbar: FC<TopbarProps>;
@@ -84,7 +87,9 @@ declare module "@/components/ui/sonner" {
   import { FC } from "react";
 
   export interface ToasterProps {
-    // Add any props if needed
+    position?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "top-center" | "bottom-center";
+    toastOptions?: Record<string, unknown>;
+    theme?: "light" | "dark" | "system";
   }
 
   export const Toaster: FC<ToasterProps>;

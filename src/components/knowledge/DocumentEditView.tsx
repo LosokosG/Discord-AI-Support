@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
 import DocumentForm from "@/components/knowledge/DocumentForm";
 import { getDocumentById } from "@/lib/services/documents";
 import { useSupabase } from "@/components/hooks/useSupabase";
@@ -38,7 +36,6 @@ export function DocumentEditView({ serverId, documentId, initialDocument }: Docu
     } catch (err) {
       console.error("Error loading document:", err);
       setError(err instanceof Error ? err.message : "An unexpected error occurred.");
-      toast.error("Failed to load document. Please try again.");
     } finally {
       setIsLoading(false);
     }

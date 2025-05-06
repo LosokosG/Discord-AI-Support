@@ -1,6 +1,5 @@
 import type { APIRoute } from "astro";
 import { createSupabaseServerInstance } from "../../../db/supabase.server";
-import { supabaseClient } from "../../../db/supabase.client";
 
 interface DiscordGuild {
   id: string;

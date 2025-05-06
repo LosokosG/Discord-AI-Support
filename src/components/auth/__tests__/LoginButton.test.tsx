@@ -1,19 +1,42 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { LoginButton } from "../LoginButton";
 
 describe("LoginButton", () => {
-  // Mockujemy globalne window.location
+  // Store original location and create a properly typed version for mocking
   const originalLocation = window.location;
+
   beforeEach(() => {
+    // Create a new Location-like object that can be manipulated
+    const mockLocation = {
+      href: "",
+      assign: vi.fn(),
+      replace: vi.fn(),
+      reload: vi.fn(),
+      toString: vi.fn(),
+      origin: "",
+      protocol: "",
+      host: "",
+      hostname: "",
+      port: "",
+      pathname: "",
+      search: "",
+      hash: "",
+    };
+
+    // Replace the location property
     Object.defineProperty(window, "location", {
-      value: { href: "" },
       writable: true,
+      value: mockLocation,
     });
   });
 
   afterEach(() => {
-    window.location = originalLocation;
+    // Restore by using defineProperty instead of direct assignment
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: originalLocation,
+    });
   });
 
   it("renders a login button", () => {

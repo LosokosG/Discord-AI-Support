@@ -47,9 +47,9 @@ try {
 }
 
 // Server must exist at this point due to the redirect above
-const serverName = server!.name;
-const serverIcon = server!.icon_url;
-const isActive = server!.active;
+const serverName = server?.name;
+const serverIcon = server?.icon_url;
+const isActive = server?.active;
 
 // Generate Discord OAuth URL for bot reinstall
 const getAddBotUrl = (serverId: string, serverName: string, serverIcon: string | null) => {
@@ -148,7 +148,7 @@ const username = "Discord Admin";
                 </p>
               </div>
             </div>
-            <a href={getAddBotUrl(id, serverName, serverIcon)} class="whitespace-nowrap">
+            <a href={getAddBotUrl(id, serverName ?? "Unknown Server", serverIcon ?? null)} class="whitespace-nowrap">
               <Button className="gap-2 bg-amber-600 hover:bg-amber-700">
                 <PlusCircle className="h-4 w-4" />
                 Reinstall Bot
@@ -169,6 +169,7 @@ const username = "Discord Admin";
           <select
             id="server-selector"
             class="bg-transparent text-discord-text-normal border-none focus:outline-none focus:ring-0 text-sm font-medium"
+            onchange="if(this.value) window.location.href=this.value;"
           >
             <option value="" disabled selected>Change server</option>
             {
@@ -327,19 +328,3 @@ const username = "Discord Admin";
     </div>
   </div>
 </DashboardLayout>
-
-<script>
-  // Handle server selection change
-  const serverSelector = document.getElementById("server-selector");
-
-  if (serverSelector) {
-    serverSelector.addEventListener("change", function () {
-      // TypeScript assertion for HTML select element
-      const select = this as HTMLSelectElement;
-      if (select.value) {
-        console.log("Redirecting to server:", select.value);
-        window.location.href = select.value;
-      }
-    });
-  }
-</script>

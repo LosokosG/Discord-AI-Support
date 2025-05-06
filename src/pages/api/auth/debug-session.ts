@@ -1,6 +1,13 @@
 import type { APIRoute } from "astro";
 import { createSupabaseServerInstance } from "../../../db/supabase.server";
 
+// Define a type for cookie debug information
+interface CookieDebugInfo {
+  name?: string;
+  value?: string;
+  error?: string;
+}
+
 export const GET: APIRoute = async ({ request, cookies }) => {
   const supabase = createSupabaseServerInstance({ cookies, headers: request.headers });
 
@@ -9,7 +16,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
   const userResponse = await supabase.auth.getUser();
 
   // Pobierz wszystkie cookies
-  let cookiesDebug = [];
+  let cookiesDebug: CookieDebugInfo[] = [];
   try {
     const cookieHeader = request.headers.get("cookie");
     if (cookieHeader) {
@@ -25,7 +32,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
         };
       });
     }
-  } catch (error) {
+  } catch {
     cookiesDebug = [{ error: "Nie można odczytać cookies" }];
   }
 

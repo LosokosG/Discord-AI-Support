@@ -16,7 +16,6 @@ interface ModuleCardProps extends ModuleCardType {
 }
 
 export default function ModuleCard({
-  id,
   title,
   description,
   href,

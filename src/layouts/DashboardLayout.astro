@@ -14,7 +14,7 @@ interface Props {
   username?: string;
 }
 
-const { title, activeTab = "home", showTabs = false, serverName, serverIcon, username = "Discord User" } = Astro.props;
+const { title, activeTab = "home", showTabs = false, serverName, username = "Discord User" } = Astro.props;
 
 // Get the server ID from the URL if available
 const { id } = Astro.params;
@@ -91,10 +91,17 @@ const mobileMenuScript = `
     {/* Main content area */}
     <div class="flex-1 flex flex-col overflow-hidden">
       {/* Topbar */}
-      <Topbar title={title} serverName={serverName} serverStatus="online" username={username} client:load />
+      <Topbar title={title} serverName={serverName} serverStatus={"online"} username={username} client:load />
 
       {/* Mobile Drawer */}
-      <Drawer items={navItems} activeItemId={activeTab} isOpen={false} onClose={() => {}} serverId={id} client:load />
+      <Drawer
+        items={navItems}
+        activeItemId={activeTab}
+        isOpen={false}
+        onClose={() => console.log("Drawer closed")}
+        serverId={id}
+        client:load
+      />
 
       {/* Tabs navigation (only when showTabs is true) */}
       {
@@ -140,17 +147,24 @@ const mobileMenuScript = `
 
 <script set:html={mobileMenuScript} />
 
-<script>
+<script is:inline>
   // Listen for drawer-toggle event from client and pass state to Drawer React component
-  document.addEventListener("drawer-toggle", (e) => {
-    const event = e as CustomEvent;
-    const detail = event.detail;
-    if (detail && detail.isOpen !== undefined) {
-      // Pass to React component custom event
-      const drawerEvent = new CustomEvent("update-drawer-state", {
-        detail: { isOpen: detail.isOpen },
-      });
-      document.dispatchEvent(drawerEvent);
+  document.addEventListener("drawer-toggle", function (event) {
+    // eslint-disable-next-line prettier/prettier
+    // Handle the custom event
+    if (
+      event &&
+      typeof event === "object" &&
+      "detail" in event &&
+      event.detail &&
+      typeof event.detail.isOpen === "boolean"
+    ) {
+      // Pass to React component via custom event
+      document.dispatchEvent(
+        new CustomEvent("update-drawer-state", {
+          detail: { isOpen: event.detail.isOpen },
+        })
+      );
     }
   });
 </script>

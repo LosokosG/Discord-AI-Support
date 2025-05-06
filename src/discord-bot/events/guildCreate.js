@@ -1,3 +1,4 @@
+/* eslint-env node */
 import apiService from "../services/api.js";
 
 /**

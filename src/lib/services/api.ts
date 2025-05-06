@@ -1,8 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ServerList, Server, CreateServerCommand, UpdateServerCommand } from "@/types";
-
-const API_BASE_URL = import.meta.env.PUBLIC_API_BASE_URL || "/api";
-
 /**
  * Fetches the list of Discord servers connected to the application
  */
@@ -123,6 +120,7 @@ export async function updateServer(
 ): Promise<Server> {
   try {
     // Convert camelCase to snake_case for database
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dbData: Record<string, any> = {};
 
     if (serverData.name !== undefined) dbData.name = serverData.name;

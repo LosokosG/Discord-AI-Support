@@ -28,7 +28,7 @@ describe("Discord Bot Commands", () => {
 
   it("help command should reply with help information", async () => {
     // Mock implementation
-    const executeHelpCommand = async (interaction: any) => {
+    const executeHelpCommand = async (interaction: typeof mockInteraction) => {
       await interaction.reply({ content: "Help information", ephemeral: true });
     };
 

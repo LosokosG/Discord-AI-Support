@@ -1,5 +1,3 @@
-import type { ServerDetail } from "@/types";
-
 // Custom types for mock server data
 export interface ServerConfig {
   language: string;

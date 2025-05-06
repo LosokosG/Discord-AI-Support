@@ -2,12 +2,16 @@
 // In MVP, we're redirecting the main page to the dashboard directly
 // In the future, this could be a landing page or a login page
 
+import Layout from "../layouts/Layout.astro";
+import { Button } from "../components/ui/button";
+import { Icons } from "../components/ui/icons";
+
 // Redirect to dashboard
 return Astro.redirect("/dashboard");
 ---
 
-import Layout from '../layouts/Layout.astro'; import {Button} from '../components/ui/button'; import {Icons} from '../components/ui/icons';
-
+<!-- The content below won't be used because of the redirect above. 
+     Either remove the redirect to use this landing page, or remove the content below -->
 <Layout title="Discord AI Bot - Zautomatyzuj swój serwer Discord">
   <div class="flex flex-col min-h-screen">
     <header class="container py-6">

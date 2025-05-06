@@ -15,7 +15,6 @@ export default {
     if (!thread.guild) return;
 
     const serverId = thread.guild.id;
-    const parentChannelId = thread.parentId;
 
     try {
       // Get server configuration

@@ -203,6 +203,7 @@ API Knowledge Documents umożliwia zarządzanie bazą wiedzy dla serwerów Disco
 
 1. Walidacja parametrów ścieżki i query
 2. Wywołanie serwisu `documentsService.listDocuments`
+
    ```typescript
    async function listDocuments({ serverId, page, pageSize, q, fileType }, supabaseClient) {
      let query = supabaseClient
@@ -231,6 +232,7 @@ API Knowledge Documents umożliwia zarządzanie bazą wiedzy dla serwerów Disco
      };
    }
    ```
+
 3. Mapowanie wyników DB na DTO i zwrot odpowiedzi
 
 ### 3. POST `/servers/{id}/documents`
@@ -240,6 +242,7 @@ API Knowledge Documents umożliwia zarządzanie bazą wiedzy dla serwerów Disco
 3. Walidacja body
 4. Dla multipart: przetworzenie pliku i ekstrakcja tekstu (dla PDF)
 5. Wywołanie serwisu `documentsService.createDocument`
+
    ```typescript
    async function createDocument(serverId, data, createdBy, supabaseClient) {
      // Dla uploads plików PDF - obsługa storage
@@ -270,12 +273,14 @@ API Knowledge Documents umożliwia zarządzanie bazą wiedzy dla serwerów Disco
      return mapToKnowledgeDocument(document);
    }
    ```
+
 6. Zwrot nowo utworzonego dokumentu
 
 ### 4. GET `/servers/{id}/documents/{docId}`
 
 1. Walidacja parametrów ścieżki
 2. Wywołanie serwisu `documentsService.getDocumentById`
+
    ```typescript
    async function getDocumentById(serverId, docId, supabaseClient) {
      const { data, error } = await supabaseClient
@@ -303,12 +308,14 @@ API Knowledge Documents umożliwia zarządzanie bazą wiedzy dla serwerów Disco
      return mapToKnowledgeDocumentWithContent(documentWithContent);
    }
    ```
+
 3. Zwrot dokumentu lub błędu 404
 
 ### 5. PATCH `/servers/{id}/documents/{docId}`
 
 1. Walidacja parametrów ścieżki i body
 2. Wywołanie serwisu `documentsService.updateDocument`
+
    ```typescript
    async function updateDocument(serverId, docId, data, supabaseClient) {
      const { data: document, error } = await supabaseClient
@@ -330,12 +337,14 @@ API Knowledge Documents umożliwia zarządzanie bazą wiedzy dla serwerów Disco
      return mapToKnowledgeDocument(document);
    }
    ```
+
 3. Zwrot zaktualizowanego dokumentu
 
 ### 6. DELETE `/servers/{id}/documents/{docId}`
 
 1. Walidacja parametrów ścieżki
 2. Wywołanie serwisu `documentsService.deleteDocument`
+
    ```typescript
    async function deleteDocument(serverId, docId, supabaseClient) {
      // Pobranie informacji o dokumencie
@@ -366,12 +375,14 @@ API Knowledge Documents umożliwia zarządzanie bazą wiedzy dla serwerów Disco
      if (error) throw error;
    }
    ```
+
 3. Zwrot statusu 204 No Content
 
 ### 7. POST `/servers/{id}/documents/{docId}/reindex`
 
 1. Walidacja parametrów ścieżki
 2. Wywołanie serwisu `documentsService.reindexDocument`
+
    ```typescript
    async function reindexDocument(serverId, docId, supabaseClient) {
      // Sprawdzenie czy dokument istnieje
@@ -396,6 +407,7 @@ API Knowledge Documents umożliwia zarządzanie bazą wiedzy dla serwerów Disco
      return { id: docId, status: "reindexing" };
    }
    ```
+
 3. Zwrot statusu 200 OK z informacją o rozpoczęciu reindeksacji
 
 ## 6. Względy bezpieczeństwa

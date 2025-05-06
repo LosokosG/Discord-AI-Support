@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+// Extend Window interface to include supabase property
+declare global {
+  interface Window {
+    supabase: SupabaseClient;
+  }
+}
+
 /**
  * Custom hook to access the Supabase client in React components
  *
@@ -13,7 +20,6 @@ export function useSupabase() {
   useEffect(() => {
     // Check if we're in the browser
     if (typeof window !== "undefined") {
-      // @ts-ignore - Astro injects this into the window object during hydration
       const supabase = window.supabase;
 
       if (supabase) {
