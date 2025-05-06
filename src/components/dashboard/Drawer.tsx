@@ -26,10 +26,10 @@ export default function Drawer({ items, activeItemId, isOpen: initialIsOpen, onC
       }
     };
 
-    document.addEventListener('update-drawer-state', handleDrawerUpdate);
-    
+    document.addEventListener("update-drawer-state", handleDrawerUpdate);
+
     return () => {
-      document.removeEventListener('update-drawer-state', handleDrawerUpdate);
+      document.removeEventListener("update-drawer-state", handleDrawerUpdate);
     };
   }, []);
 
@@ -38,17 +38,25 @@ export default function Drawer({ items, activeItemId, isOpen: initialIsOpen, onC
     setIsDrawerOpen(false);
     onClose();
     // Powiadom DashboardLayout o zamknięciu
-    document.dispatchEvent(new CustomEvent('drawer-close'));
+    document.dispatchEvent(new CustomEvent("drawer-close"));
   };
 
   return (
     <Sheet open={isDrawerOpen} onOpenChange={(open: boolean) => !open && handleClose()}>
-      <SheetContent side="left" className="p-0 w-[280px] bg-discord-background-tertiary border-discord-border" id="mobile-sidebar">
+      <SheetContent
+        side="left"
+        className="p-0 w-[280px] bg-discord-background-tertiary border-discord-border"
+        id="mobile-sidebar"
+      >
         <SheetHeader className="p-4 border-b border-discord-border">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-discord-text-normal font-semibold">Discord AI Support</SheetTitle>
-            <Button variant="ghost" size="icon" onClick={handleClose} 
-              className="text-discord-interactive-normal hover:text-discord-interactive-hover hover:bg-discord-background-primary">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClose}
+              className="text-discord-interactive-normal hover:text-discord-interactive-hover hover:bg-discord-background-primary"
+            >
               <X className="h-5 w-5" />
             </Button>
           </div>
@@ -92,4 +100,4 @@ export default function Drawer({ items, activeItemId, isOpen: initialIsOpen, onC
       </SheetContent>
     </Sheet>
   );
-} 
+}

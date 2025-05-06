@@ -3,6 +3,7 @@
 ## Tables
 
 ### 1. users
+
 ```sql
 CREATE TABLE public.users (
     id UUID PRIMARY KEY REFERENCES auth.users(id),
@@ -21,6 +22,7 @@ EXECUTE FUNCTION public.set_updated_at();
 ```
 
 ### 2. servers
+
 ```sql
 CREATE TABLE public.servers (
     id BIGINT PRIMARY KEY, -- Discord server ID
@@ -56,6 +58,7 @@ EXECUTE FUNCTION public.notify_server_config_changed();
 ```
 
 ### 3. server_admins
+
 ```sql
 CREATE TABLE public.server_admins (
     server_id BIGINT REFERENCES public.servers(id) ON DELETE CASCADE,
@@ -66,6 +69,7 @@ CREATE TABLE public.server_admins (
 ```
 
 ### 4. knowledge_documents
+
 ```sql
 CREATE TABLE public.knowledge_documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -92,6 +96,7 @@ CREATE INDEX knowledge_documents_server_id_idx ON public.knowledge_documents (se
 ```
 
 ### 5. conversations
+
 ```sql
 CREATE TABLE public.conversations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -120,6 +125,7 @@ CREATE INDEX conversations_created_at_idx ON public.conversations (created_at);
 ```
 
 ### 6. forwarded_tickets
+
 ```sql
 CREATE TABLE public.forwarded_tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -139,6 +145,7 @@ CREATE INDEX forwarded_tickets_status_idx ON public.forwarded_tickets (status);
 ```
 
 ### 7. shards
+
 ```sql
 CREATE TABLE public.shards (
     id INTEGER PRIMARY KEY,
@@ -157,6 +164,7 @@ EXECUTE FUNCTION public.set_updated_at();
 ```
 
 ### 8. server_shards
+
 ```sql
 CREATE TABLE public.server_shards (
     server_id BIGINT PRIMARY KEY REFERENCES public.servers(id) ON DELETE CASCADE,
@@ -169,6 +177,7 @@ CREATE INDEX server_shards_shard_id_idx ON public.server_shards (shard_id);
 ```
 
 ### 9. billing_plans
+
 ```sql
 CREATE TABLE public.billing_plans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -190,6 +199,7 @@ EXECUTE FUNCTION public.set_updated_at();
 ```
 
 ### 10. subscriptions
+
 ```sql
 CREATE TABLE public.subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -215,6 +225,7 @@ CREATE INDEX subscriptions_status_idx ON public.subscriptions (status);
 ```
 
 ### 11. invoices
+
 ```sql
 CREATE TABLE public.invoices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -244,6 +255,7 @@ CREATE INDEX invoices_status_idx ON public.invoices (status);
 ```
 
 ### 12. analytics
+
 ```sql
 CREATE TABLE public.analytics (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -272,6 +284,7 @@ CREATE INDEX analytics_date_idx ON public.analytics (date);
 ## Functions and Triggers
 
 ### 1. set_updated_at Function
+
 ```sql
 CREATE OR REPLACE FUNCTION public.set_updated_at()
 RETURNS TRIGGER AS $$
@@ -283,6 +296,7 @@ $$ LANGUAGE plpgsql;
 ```
 
 ### 2. notify_server_config_changed Function
+
 ```sql
 CREATE OR REPLACE FUNCTION public.notify_server_config_changed()
 RETURNS TRIGGER AS $$
@@ -299,6 +313,7 @@ $$ LANGUAGE plpgsql;
 ## Row Level Security (RLS) Policies
 
 ### 1. servers Table RLS
+
 ```sql
 -- Enable RLS on servers table
 ALTER TABLE public.servers ENABLE ROW LEVEL SECURITY;
@@ -315,6 +330,7 @@ CREATE POLICY server_update_policy ON public.servers
 ```
 
 ### 2. knowledge_documents Table RLS
+
 ```sql
 -- Enable RLS on knowledge_documents table
 ALTER TABLE public.knowledge_documents ENABLE ROW LEVEL SECURITY;
@@ -341,6 +357,7 @@ CREATE POLICY knowledge_document_delete_policy ON public.knowledge_documents
 ```
 
 ### 3. conversations Table RLS
+
 ```sql
 -- Enable RLS on conversations table
 ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
@@ -352,6 +369,7 @@ CREATE POLICY conversation_select_policy ON public.conversations
 ```
 
 ### 4. forwarded_tickets Table RLS
+
 ```sql
 -- Enable RLS on forwarded_tickets table
 ALTER TABLE public.forwarded_tickets ENABLE ROW LEVEL SECURITY;
@@ -377,26 +395,30 @@ CREATE TABLE public.conversations_server_12345678 PARTITION OF public.conversati
     FOR VALUES IN (12345678);
 ```
 
-
 ## Additional Notes
 
 1. **Supabase Integration**:
+
    - The schema is designed to work seamlessly with Supabase's authentication system and RLS features.
    - The users table references auth.users for Discord OAuth integration.
 
 2. **Scalability Considerations**:
+
    - The sharding system allows dynamic allocation of servers to shards.
    - Conversations are partitioned by server_id to improve query performance for large datasets.
 
 3. **Knowledge Base Optimization**:
+
    - Full-text search is implemented using PostgreSQL's built-in tsvector type.
    - Knowledge documents store their content directly in the database with content_vector for efficient searching.
 
 4. **Analytics**:
+
    - The analytics table stores aggregated daily statistics rather than raw event data.
    - This approach balances analytical needs with database efficiency.
 
 5. **Billing System**:
+
    - The schema includes comprehensive billing tables to support subscription-based pricing models.
    - Invoices track payment history and status.
 

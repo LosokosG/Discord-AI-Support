@@ -1,6 +1,6 @@
-import '@testing-library/jest-dom';
-import { afterEach } from 'vitest';
-import { cleanup } from '@testing-library/react';
+import "@testing-library/jest-dom";
+import { afterEach } from "vitest";
+import { cleanup } from "@testing-library/react";
 
 // Automatically clean up after each test
 afterEach(() => {
@@ -13,4 +13,4 @@ afterEach(() => {
 //   default: vi.fn()
 // }));
 
-// Add custom matchers if needed 
+// Add custom matchers if needed

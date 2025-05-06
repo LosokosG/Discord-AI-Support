@@ -1,6 +1,7 @@
 # Status implementacji widoku Dashboard Sidebar
 
 ## Zrealizowane kroki
+
 1. Zidentyfikowano problem z sidebar'em w dashboardzie, który pojawiał się na chwilę i znikał
 2. Zmieniono implementację komponentu `Sidebar.tsx`:
    - Rozdzielono sidebar na dwie oddzielne części: dla wersji mobilnej i desktopowej
@@ -13,6 +14,7 @@
    - Zapewniono prawidłową integrację komponentu sidebar z layoutem
 
 ## Kolejne kroki
+
 1. Przeprowadzenie dodatkowych testów na różnych urządzeniach i przeglądarkach
 2. Monitorowanie wydajności i ewentualnych problemów z hydracją komponentu
 3. Rozważenie dalszych usprawnień UX dla nawigacji mobilnej:
@@ -20,4 +22,4 @@
    - Dodanie animacji przejścia dla elementów menu
    - Optymalizacja wielkości przycisków dla urządzeń dotykowych
 4. Dostosowanie stylów sidebar'a do ogólnego designu aplikacji
-5. Implementacja testów dla komponentu Sidebar 
+5. Implementacja testów dla komponentu Sidebar

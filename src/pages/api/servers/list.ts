@@ -84,7 +84,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
     const adminGuilds = userGuilds.filter((guild) => {
       // Parse permission string as bigint
       const permissions = BigInt(guild.permissions);
-      
+
       // Check if the user has the ADMINISTRATOR permission
       return (permissions & ADMIN_PERMISSION) === ADMIN_PERMISSION;
     });
@@ -106,7 +106,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
 
     // Log active statuses for debugging
     console.log("📢 [api/servers/list] Bot servers active status:");
-    botServers.forEach(server => {
+    botServers.forEach((server) => {
       console.log(`Server ${server.name} (${server.id}): active=${server.active}`);
     });
 
@@ -140,19 +140,18 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       // Sort by has_bot first (active servers first)
       if (a.has_bot && a.active && (!b.has_bot || !b.active)) return -1;
       if ((!a.has_bot || !a.active) && b.has_bot && b.active) return 1;
-      
+
       // Then sort by has_bot (even if inactive)
       if (a.has_bot && !b.has_bot) return -1;
       if (!a.has_bot && b.has_bot) return 1;
-      
+
       // Lastly sort by name
       return a.name.localeCompare(b.name);
     });
 
-    return new Response(
-      JSON.stringify({ guilds: sortedGuilds } as ServerListResponse),
-      { headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ guilds: sortedGuilds } as ServerListResponse), {
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("📢 [api/servers/list] Unexpected error:", error);
     return new Response(

@@ -1,6 +1,7 @@
 # Status implementacji widoku dokumentów wiedzy
 
 ## Zrealizowane kroki
+
 - Przeanalizowano stronę `src/pages/servers/[id]/knowledge/[docId]/edit.astro` do edycji dokumentów.
 - Sprawdzono komponent `src/components/knowledge/DocumentForm.tsx` używany do tworzenia i edycji dokumentów.
 - Zlokalizowano i przeanalizowano stronę `src/pages/servers/[id]/knowledge/new.astro` do tworzenia nowych dokumentów.
@@ -20,6 +21,7 @@
 - Dodano obsługę wartości null dla klienta Supabase w `src/components/knowledge/DocumentList.tsx`.
 
 ## Kolejne kroki
+
 - Ujednolicić wygląd interfejsu użytkownika, stosując komponenty shadcn/ui i style Tailwind podobne do tych w `src/pages/servers/[id]/settings.astro`.
 - Przeprowadzić kompleksowe testy funkcjonalności:
   - Testowanie wyświetlania różnych typów dokumentów (PDF, Markdown, TXT)

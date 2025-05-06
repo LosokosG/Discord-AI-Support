@@ -67,7 +67,7 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ['"gg sans"', 'system-ui', 'sans-serif'],
+        sans: ['"gg sans"', "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {
@@ -101,4 +101,4 @@ export default {
     },
   },
   plugins: [require("tailwindcss-animate")],
-} 
+};

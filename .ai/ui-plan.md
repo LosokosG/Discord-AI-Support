@@ -1,6 +1,7 @@
 # Discord AI Support Bot - UI Architecture Planning Summary
 
 ## Decyzje
+
 1. UI będzie obsługiwać tylko rolę Administratora, wykorzystując istniejące uprawnienia z Discord.
 2. MVP skupi się wyłącznie na konfiguracji serwera i zarządzaniu dokumentami wiedzy.
 3. Zarządzanie administratorami serwera będzie obsługiwane przez DiscordJS, nie przez UI.
@@ -21,6 +22,7 @@
 18. W ramach ścieżki `/dashboard` zostanie zaimplementowany centralny widok nawigacyjny z możliwością szybkiego powrotu z podstron.
 
 ## Rekomendacje
+
 1. Użycie `shadcn/ui` + Tailwind CSS do budowy spójnych komponentów UI (formularze, tabele, przyciski, toasty).
 2. Zdefiniowanie routingu z React Router DOM dla głównych ścieżek: `/servers`, `/servers/:id`, `/servers/:id/documents`, `/servers/:id/settings`.
 3. Użycie React Hooks + Context API do zarządzania stanem aplikacji.
@@ -41,31 +43,35 @@
 ## Szczegółowe podsumowanie planowania architektury UI
 
 ### Ogólne założenia
+
 UI dla MVP będzie skoncentrowane na administratorach serwerów Discord, którzy potrzebują prostego, intuicyjnego interfejsu do konfiguracji bota i zarządzania bazą wiedzy. Interfejs ma być przede wszystkim optymalny dla komputerów stacjonarnych, z podstawową obsługą urządzeń mobilnych.
 
 ### Kluczowe widoki i przepływy użytkownika
 
 #### 1. Lista serwerów
+
 - Widok wszystkich serwerów, którymi zarządza zalogowany użytkownik
 - Serwery, którymi administrator może zarządzać mają pełne kolory, pozostałe są przyciemnione i monochromatyczne
 - Każdy serwer wyświetla nazwę, ikonę, status online/offline i stan aktywności
 - Kliknięcie w serwer przenosi do widoku konfiguracji tego serwera
 
-#### 2. Konfiguracja serwera 
+#### 2. Konfiguracja serwera
+
 - Główny panel z najważniejszymi ustawieniami (włączenie/wyłączenie bota, język, instrukcje dla AI)
 - Przyciski do aktywacji/deaktywacji bota i odświeżenia konfiguracji
 - Formularz do konfiguracji wszystkich parametrów bota (channels, support_role_id, limity wiadomości)
 - Możliwość edycji systemprompt dla modelu AI
 - Mapowanie pól konfiguracyjnych na odpowiednie komponenty UI:
-  * enabled → przełącznik (switch/toggle)
-  * language → dropdown z listą języków 
-  * systemPrompt → textarea z formatowaniem markdown
-  * channels → multi-select z nazwami kanałów
-  * support_role_id → dropdown z rolami (pokazujący nazwy ról)
-  * maxMessagesPerUser → pole numeryczne z min/max
-  * maxTextLength → pole numeryczne z min/max
+  - enabled → przełącznik (switch/toggle)
+  - language → dropdown z listą języków
+  - systemPrompt → textarea z formatowaniem markdown
+  - channels → multi-select z nazwami kanałów
+  - support_role_id → dropdown z rolami (pokazujący nazwy ról)
+  - maxMessagesPerUser → pole numeryczne z min/max
+  - maxTextLength → pole numeryczne z min/max
 
 #### 3. Zarządzanie dokumentami
+
 - Lista dokumentów z możliwością podglądu zawartości
 - Formularz do uploadu nowych dokumentów (.txt, .md, .pdf)
 - Pole tekstowe do bezpośredniego wklejania zawartości (jako dokument .txt)
@@ -73,6 +79,7 @@ UI dla MVP będzie skoncentrowane na administratorach serwerów Discord, którzy
 - Podgląd zawartości dokumentów
 
 #### 0. Dashboard (centralny widok nawigacyjny)
+
 - Dostępny pod `/dashboard` jako główny punkt wejścia do aplikacji
 - Zawiera sidebar z linkami do głównych modułów (Ustawienia, Dokumenty) oraz topbar z nazwą projektu
 - W MVP linki przyjmują statyczny lub konfigurowalny `serverId`; po dodaniu listy serwerów będą generowane dynamicznie
@@ -82,21 +89,24 @@ UI dla MVP będzie skoncentrowane na administratorach serwerów Discord, którzy
 ### Strategia integracji z API i zarządzania stanem
 
 #### Integracja z API
+
 - Typowany klient API z fetch + Zod dla walidacji typów
 - Bezpośrednie mapowanie endpointów API do operacji UI
 - Obsługa głównych endpointów:
-  * GET/POST/DELETE/PATCH dla serwerów i dokumentów
-  * Zarządzanie konfiguracją serwera
-  * Aktywacja/deaktywacja/odświeżanie konfiguracji
+  - GET/POST/DELETE/PATCH dla serwerów i dokumentów
+  - Zarządzanie konfiguracją serwera
+  - Aktywacja/deaktywacja/odświeżanie konfiguracji
 - Podstawowa obsługa błędów HTTP
 
 #### Komunikacja dashboard-bot
+
 - Bot i dashboard komunikują się przez bazę danych, bez bezpośredniego połączenia
 - Dashboard zapisuje konfigurację w bazie danych przez API
 - Bot regularnie odpytuje bazę lub wykorzystuje mechanizm powiadomień (NOTIFY w PostgreSQL)
 - Bot aktualizuje swoją konfigurację po wykryciu zmian
 
 #### Zarządzanie stanem
+
 - Wykorzystanie React hooks (useState, useEffect, useReducer) oraz Context API
 - Brak zaawansowanego buforowania czy reakcji na zmiany w czasie rzeczywistym
 - Osobne konteksty dla głównych zasobów (serwery, dokumenty, konfiguracja)
@@ -105,22 +115,26 @@ UI dla MVP będzie skoncentrowane na administratorach serwerów Discord, którzy
 ### Responsywność, dostępność i bezpieczeństwo
 
 #### Responsywność
+
 - Układ oparty na Tailwind CSS z wykorzystaniem wariantów breakpointów (sm:, md:, lg:)
 - Sidebar dla nawigacji na desktopie, drawer na urządzeniach mobilnych
 - Topbar zawierający nazwę i ikonę wybranego serwera oraz dane zalogowanego użytkownika
 
 #### Dostępność (WCAG AA)
+
 - Semantyczne znaczniki HTML i prawidłowe etykiety formularzy
 - Odpowiedni kontrast kolorów zgodny z WCAG AA
 - Pełna obsługa nawigacji klawiaturą
 - Komunikaty o błędach i stanach dostępne dla technologii asystujących
 
 #### Bezpieczeństwo
+
 - JWT autentykacja będzie zaimplementowana w późniejszym etapie, nie w MVP
 - Podstawowe zabezpieczenia UI przed nieautoryzowanym dostępem
 - Guard clauses i modalne potwierdzenia dla operacji krytycznych
 
 ### Technologia i komponenty
+
 - React z React Router DOM do nawigacji
 - Tailwind CSS do stylowania
 - shadcn/ui dla komponentów interfejsu

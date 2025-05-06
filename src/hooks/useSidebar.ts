@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 /**
  * Custom hook for managing the sidebar state in the dashboard layout
@@ -14,13 +14,14 @@ const useSidebar = () => {
   useEffect(() => {
     // Auto-close sidebar on window resize to desktop breakpoint
     const handleResize = () => {
-      if (window.innerWidth >= 768) { // md breakpoint in Tailwind
+      if (window.innerWidth >= 768) {
+        // md breakpoint in Tailwind
         setIsOpen(false);
       }
     };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Optional: Close sidebar when clicking outside
@@ -28,17 +29,17 @@ const useSidebar = () => {
     if (!isOpen) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      const sidebarElement = document.getElementById('mobile-sidebar');
+      const sidebarElement = document.getElementById("mobile-sidebar");
       if (sidebarElement && !sidebarElement.contains(event.target as Node)) {
         closeSidebar();
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
   return { isOpen, toggleSidebar, openSidebar, closeSidebar };
 };
 
-export default useSidebar; 
+export default useSidebar;

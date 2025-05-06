@@ -1,70 +1,70 @@
 :root {
   /* Discord Base Colors */
   --discord-main: #313338;
-  --discord-secondary: #2B2D31;
-  --discord-sidebar: #1E1F22;
-  --discord-blurple: #5865F2;
-  --discord-blurple-hover: #4752C4;
-  --discord-green: #23A55A;
-  --discord-red: #F23F43;
-  --discord-yellow: #F0B232;
-  
+  --discord-secondary: #2b2d31;
+  --discord-sidebar: #1e1f22;
+  --discord-blurple: #5865f2;
+  --discord-blurple-hover: #4752c4;
+  --discord-green: #23a55a;
+  --discord-red: #f23f43;
+  --discord-yellow: #f0b232;
+
   /* Text Colors */
-  --discord-text-normal: #EDEEF0;
-  --discord-text-muted: #949BA4;
-  --discord-text-link: #00A8FC;
-  
+  --discord-text-normal: #edeef0;
+  --discord-text-muted: #949ba4;
+  --discord-text-link: #00a8fc;
+
   /* Component Colors */
-  --discord-interactive-normal: #B5BAC1;
-  --discord-interactive-hover: #DCDDDE;
-  --discord-interactive-active: #FFFFFF;
-  --discord-interactive-muted: #4E5058;
-  
+  --discord-interactive-normal: #b5bac1;
+  --discord-interactive-hover: #dcddde;
+  --discord-interactive-active: #ffffff;
+  --discord-interactive-muted: #4e5058;
+
   /* Background Colors */
   --discord-background-primary: var(--discord-main);
   --discord-background-secondary: var(--discord-secondary);
   --discord-background-tertiary: var(--discord-sidebar);
   --discord-background-accent: var(--discord-blurple);
-  --discord-background-floating: #18191C;
-  
+  --discord-background-floating: #18191c;
+
   /* Border Colors */
   --discord-border: rgba(78, 80, 88, 0.48);
-  
+
   /* Input Colors */
-  --discord-input-background: #1E1F22;
-  --discord-input-border: #0C0D0F;
-  
+  --discord-input-background: #1e1f22;
+  --discord-input-border: #0c0d0f;
+
   /* Shadcn/ui Theme Mapping */
   --background: var(--discord-background-primary);
   --foreground: var(--discord-text-normal);
-  
+
   --card: var(--discord-background-secondary);
   --card-foreground: var(--discord-text-normal);
-  
+
   --popover: var(--discord-background-floating);
   --popover-foreground: var(--discord-text-normal);
-  
+
   --primary: var(--discord-blurple);
   --primary-foreground: white;
-  
+
   --secondary: var(--discord-background-tertiary);
   --secondary-foreground: var(--discord-text-normal);
-  
+
   --muted: var(--discord-interactive-muted);
   --muted-foreground: var(--discord-text-muted);
-  
+
   --accent: var(--discord-blurple);
   --accent-foreground: var(--discord-interactive-active);
-  
+
   --destructive: var(--discord-red);
   --destructive-foreground: white;
-  
+
   --border: var(--discord-border);
   --input: var(--discord-input-background);
   --ring: var(--discord-blurple);
-  
+
   --radius: 0.5rem;
-  
+
   /* Sidebar Width */
   --sidebar-width: 72px;
 }
@@ -135,33 +135,33 @@
 
 /* Discord font */
 @font-face {
-  font-family: 'gg sans';
-  src: url('/fonts/gg-sans-regular.woff2') format('woff2');
+  font-family: "gg sans";
+  src: url("/fonts/gg-sans-regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'gg sans';
-  src: url('/fonts/gg-sans-medium.woff2') format('woff2');
+  font-family: "gg sans";
+  src: url("/fonts/gg-sans-medium.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'gg sans';
-  src: url('/fonts/gg-sans-semibold.woff2') format('woff2');
+  font-family: "gg sans";
+  src: url("/fonts/gg-sans-semibold.woff2") format("woff2");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'gg sans';
-  src: url('/fonts/gg-sans-bold.woff2') format('woff2');
+  font-family: "gg sans";
+  src: url("/fonts/gg-sans-bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
-} 
+}

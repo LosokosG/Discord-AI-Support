@@ -36,13 +36,13 @@ const { title = "10x Astro Starter" } = Astro.props;
 <!-- Opcjonalnie - skrypt do przełączania trybu ciemnego/jasnego -->
 <script is:inline>
   // Sprawdź, czy użytkownik ma zapisane preferencje trybu ciemnego
-  const savedTheme = localStorage.getItem('theme') || 'dark';
+  const savedTheme = localStorage.getItem("theme") || "dark";
   document.documentElement.classList.add(savedTheme);
-  
+
   // Funkcja do przełączania trybu
-  window.toggleTheme = function() {
-    const isDark = document.documentElement.classList.contains('dark');
-    document.documentElement.classList.toggle('dark', !isDark);
-    localStorage.setItem('theme', isDark ? 'light' : 'dark');
-  }
+  window.toggleTheme = function () {
+    const isDark = document.documentElement.classList.contains("dark");
+    document.documentElement.classList.toggle("dark", !isDark);
+    localStorage.setItem("theme", isDark ? "light" : "dark");
+  };
 </script>

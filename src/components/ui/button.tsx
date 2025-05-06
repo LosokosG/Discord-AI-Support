@@ -8,14 +8,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "bg-discord-blurple text-white hover:bg-discord-blurple-hover",
-        destructive:
-          "bg-discord-blurple text-white hover:bg-discord-blurple-hover",
-        outline:
-          "border border-discord-border bg-discord-blurple text-white hover:bg-discord-blurple-hover",
-        secondary:
-          "bg-discord-blurple text-white hover:bg-discord-blurple-hover",
+        default: "bg-discord-blurple text-white hover:bg-discord-blurple-hover",
+        destructive: "bg-discord-blurple text-white hover:bg-discord-blurple-hover",
+        outline: "border border-discord-border bg-discord-blurple text-white hover:bg-discord-blurple-hover",
+        secondary: "bg-discord-blurple text-white hover:bg-discord-blurple-hover",
         ghost: "text-white hover:bg-discord-blurple hover:text-white",
         link: "text-discord-blurple underline-offset-4 hover:underline",
       },

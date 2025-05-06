@@ -308,11 +308,14 @@ export const ServerSettingsView = ({ serverId }: { serverId: string }) => {
             <div className="h-5 w-5 mt-0.5">⚠️</div>
             <div>
               <h3 className="font-semibold">Bot not active in this server</h3>
-              <p className="text-sm">The bot appears to have been removed from this server. You can view settings but changes won't apply until the bot is reinstalled.</p>
+              <p className="text-sm">
+                The bot appears to have been removed from this server. You can view settings but changes won't apply
+                until the bot is reinstalled.
+              </p>
             </div>
           </div>
-          <a 
-            href={`/dashboard/servers/${serverId}`} 
+          <a
+            href={`/dashboard/servers/${serverId}`}
             className="whitespace-nowrap px-4 py-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium"
           >
             Back to dashboard

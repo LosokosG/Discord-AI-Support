@@ -1,6 +1,7 @@
 # Status implementacji widoku Tworzenie dokumentów
 
 ## Zrealizowane kroki
+
 - Zweryfikowano kod strony `new.astro` pod kątem potencjalnych błędów przy tworzeniu dokumentów.
 - Przeanalizowano logikę serwisu `documents.ts`, w szczególności funkcję `createDocument`.
 - Sprawdzono schemat bazy danych i użycie pola `created_by`.
@@ -18,7 +19,8 @@
 - Naprawiono błędy lintera dotyczące nieużywanych zmiennych (`isLoading`, `handleReindex`) w `DocumentView.tsx`.
 
 ## Kolejne kroki
+
 - Dokładne przetestowanie uproszczonego przepływu tworzenia dokumentów (tylko MD i TXT).
 - W przyszłości: implementacja rzeczywistego systemu uwierzytelniania zamiast polegania na mock użytkowniku.
 - Rozważenie dodania dedykowanej biblioteki do renderowania Markdown w podglądzie i widoku dokumentu zamiast `dangerouslySetInnerHTML`.
-- Przywrócenie lub ponowne rozważenie funkcjonalności reindeksowania dokumentów (`reindexDocument`). 
+- Przywrócenie lub ponowne rozważenie funkcjonalności reindeksowania dokumentów (`reindexDocument`).

@@ -74,7 +74,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
         error: {
           code: 500,
           message: "Internal server error",
-          details: error instanceof Error ? [{ field: "general", message: error.message }] : [{ field: "general", message: String(error) }],
+          details:
+            error instanceof Error
+              ? [{ field: "general", message: error.message }]
+              : [{ field: "general", message: String(error) }],
         },
       } as ErrorResponse),
       { status: 500, headers: { "Content-Type": "application/json" } }
@@ -88,7 +91,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
  */
 export const POST: APIRoute = async ({ request, locals }) => {
   console.log("📢 [api/servers] Processing POST request to create server");
-  
+
   try {
     // 1. Authorization check
     const supabase = locals.supabase;
@@ -114,7 +117,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       console.error("📢 [api/servers] Error parsing request body:", err);
       requestBody = {};
     }
-    
+
     const parsedBody = CreateServerSchema.safeParse(requestBody);
 
     if (!parsedBody.success) {
@@ -137,13 +140,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // 3. Call service to create the server
     try {
       console.log("📢 [api/servers] Creating server with ID:", parsedBody.data.id);
-      
+
       // Check that we have a properly initialized Supabase client
       if (!supabase.from) {
         console.error("📢 [api/servers] Invalid Supabase client - missing 'from' method");
         throw new Error("Invalid Supabase client configuration");
       }
-      
+
       const newServer = await createServer(parsedBody.data as unknown as CreateServerCommand, supabase);
       console.log("📢 [api/servers] Server created successfully:", newServer);
 
@@ -179,7 +182,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
         error: {
           code: 500,
           message: "Internal server error",
-          details: error instanceof Error ? [{ field: "general", message: error.message }] : [{ field: "general", message: String(error) }],
+          details:
+            error instanceof Error
+              ? [{ field: "general", message: error.message }]
+              : [{ field: "general", message: String(error) }],
         },
       } as ErrorResponse),
       { status: 500, headers: { "Content-Type": "application/json" } }

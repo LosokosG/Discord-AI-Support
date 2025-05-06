@@ -47,10 +47,10 @@ export default function DiscordKnowledgeList({ initialDocuments, serverId }: Kno
 
   const handleDelete = async (id: string) => {
     if (!supabase) return;
-    
+
     try {
       await deleteDocument(serverId, id, supabase);
-      setDocuments(docs => docs.filter(doc => doc.id !== id));
+      setDocuments((docs) => docs.filter((doc) => doc.id !== id));
       toast.success("Document deleted successfully");
     } catch (error) {
       console.error("Error deleting document:", error);
@@ -59,10 +59,8 @@ export default function DiscordKnowledgeList({ initialDocuments, serverId }: Kno
   };
 
   // Filter documents based on search
-  const filteredDocuments = search.trim() 
-    ? documents.filter(doc => 
-        doc.title.toLowerCase().includes(search.toLowerCase())
-      )
+  const filteredDocuments = search.trim()
+    ? documents.filter((doc) => doc.title.toLowerCase().includes(search.toLowerCase()))
     : documents;
 
   return (
@@ -71,19 +69,19 @@ export default function DiscordKnowledgeList({ initialDocuments, serverId }: Kno
       <div className="flex justify-between items-center p-4 pb-2">
         <h1 className="text-2xl font-bold tracking-tight">Knowledge Base</h1>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="bg-discord-secondary border-discord-border hover:bg-discord-main"
-            onClick={() => window.open(`/dashboard/servers/${serverId}/knowledge/upload`, '_self')}
+            onClick={() => window.open(`/dashboard/servers/${serverId}/knowledge/upload`, "_self")}
           >
             <UploadIcon className="h-4 w-4 mr-2" />
             Upload File
           </Button>
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             className="bg-discord-blurple hover:bg-discord-blurple-hover text-white"
-            onClick={() => window.open(`/dashboard/servers/${serverId}/knowledge/new`, '_self')}
+            onClick={() => window.open(`/dashboard/servers/${serverId}/knowledge/new`, "_self")}
           >
             <PlusIcon className="h-4 w-4 mr-2" />
             New Document
@@ -93,9 +91,9 @@ export default function DiscordKnowledgeList({ initialDocuments, serverId }: Kno
 
       {/* Search */}
       <div className="px-4 py-2">
-        <Input 
+        <Input
           className="bg-discord-sidebar border-discord-border focus-visible:ring-discord-blurple/30 focus-visible:ring-offset-0 placeholder:text-discord-text-muted"
-          placeholder="Search documents..." 
+          placeholder="Search documents..."
           value={search}
           onChange={handleSearch}
         />
@@ -113,9 +111,9 @@ export default function DiscordKnowledgeList({ initialDocuments, serverId }: Kno
           </div>
         ) : (
           filteredDocuments.map((document) => (
-            <DocumentItem 
-              key={document.id} 
-              document={document} 
+            <DocumentItem
+              key={document.id}
+              document={document}
               serverId={serverId}
               onDelete={() => handleDelete(document.id)}
             />
@@ -134,19 +132,19 @@ interface DocumentItemProps {
 
 function DocumentItem({ document, serverId, onDelete }: DocumentItemProps) {
   const [isHovered, setIsHovered] = useState(false);
-  
+
   // Format the date to match Discord style (MM/DD/YYYY)
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
     });
   };
 
   return (
-    <div 
+    <div
       className={cn(
         "p-4 rounded-md flex flex-col bg-discord-secondary border border-transparent",
         isHovered && "border-discord-border bg-discord-secondary/90"
@@ -170,25 +168,25 @@ function DocumentItem({ document, serverId, onDelete }: DocumentItemProps) {
 
         {/* Action buttons */}
         <div className={cn("flex space-x-1", !isHovered && "opacity-0")}>
-          <Button 
-            size="icon" 
-            variant="ghost" 
+          <Button
+            size="icon"
+            variant="ghost"
             className="h-8 w-8 text-discord-text-muted hover:text-discord-text-normal hover:bg-discord-main"
-            onClick={() => window.open(`/dashboard/servers/${serverId}/knowledge/${document.id}`, '_self')}
+            onClick={() => window.open(`/dashboard/servers/${serverId}/knowledge/${document.id}`, "_self")}
           >
             <EyeIcon className="h-4 w-4" />
           </Button>
-          <Button 
-            size="icon" 
-            variant="ghost" 
+          <Button
+            size="icon"
+            variant="ghost"
             className="h-8 w-8 text-discord-text-muted hover:text-discord-text-normal hover:bg-discord-main"
-            onClick={() => window.open(`/dashboard/servers/${serverId}/knowledge/${document.id}/edit`, '_self')}
+            onClick={() => window.open(`/dashboard/servers/${serverId}/knowledge/${document.id}/edit`, "_self")}
           >
             <PencilIcon className="h-4 w-4" />
           </Button>
-          <Button 
-            size="icon" 
-            variant="ghost" 
+          <Button
+            size="icon"
+            variant="ghost"
             className="h-8 w-8 text-discord-text-muted hover:text-discord-red hover:bg-discord-main"
             onClick={() => {
               if (confirm(`Are you sure you want to delete "${document.title}"?`)) {
@@ -202,4 +200,4 @@ function DocumentItem({ document, serverId, onDelete }: DocumentItemProps) {
       </div>
     </div>
   );
-} 
+}

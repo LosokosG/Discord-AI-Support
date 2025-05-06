@@ -38,52 +38,52 @@ DROP POLICY IF EXISTS "allow_all_for_testing_invoices" ON public.invoices;
 -- Create permissive policies for each table
 
 -- Servers table
-CREATE POLICY "allow_all_for_testing_servers" 
-ON public.servers 
+CREATE POLICY "allow_all_for_testing_servers"
+ON public.servers
 FOR ALL
-USING (true) 
+USING (true)
 WITH CHECK (true);
 
 -- Server admins table
-CREATE POLICY "allow_all_for_testing_server_admins" 
-ON public.server_admins 
+CREATE POLICY "allow_all_for_testing_server_admins"
+ON public.server_admins
 FOR ALL
-USING (true) 
+USING (true)
 WITH CHECK (true);
 
 -- Knowledge documents table
-CREATE POLICY "allow_all_for_testing_knowledge_documents" 
-ON public.knowledge_documents 
+CREATE POLICY "allow_all_for_testing_knowledge_documents"
+ON public.knowledge_documents
 FOR ALL
-USING (true) 
+USING (true)
 WITH CHECK (true);
 
 -- Conversations table
-CREATE POLICY "allow_all_for_testing_conversations" 
-ON public.conversations 
+CREATE POLICY "allow_all_for_testing_conversations"
+ON public.conversations
 FOR ALL
-USING (true) 
+USING (true)
 WITH CHECK (true);
 
 -- Forwarded tickets table
-CREATE POLICY "allow_all_for_testing_forwarded_tickets" 
-ON public.forwarded_tickets 
+CREATE POLICY "allow_all_for_testing_forwarded_tickets"
+ON public.forwarded_tickets
 FOR ALL
-USING (true) 
+USING (true)
 WITH CHECK (true);
 
 -- Subscriptions table
-CREATE POLICY "allow_all_for_testing_subscriptions" 
-ON public.subscriptions 
+CREATE POLICY "allow_all_for_testing_subscriptions"
+ON public.subscriptions
 FOR ALL
-USING (true) 
+USING (true)
 WITH CHECK (true);
 
 -- Invoices table
-CREATE POLICY "allow_all_for_testing_invoices" 
-ON public.invoices 
+CREATE POLICY "allow_all_for_testing_invoices"
+ON public.invoices
 FOR ALL
-USING (true) 
+USING (true)
 WITH CHECK (true);
 ```
 
@@ -101,4 +101,4 @@ DROP POLICY IF EXISTS "allow_all_for_testing_subscriptions" ON public.subscripti
 DROP POLICY IF EXISTS "allow_all_for_testing_invoices" ON public.invoices;
 ```
 
-Then implement proper user-specific policies based on your authentication system. 
+Then implement proper user-specific policies based on your authentication system.

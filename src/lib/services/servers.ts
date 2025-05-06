@@ -60,7 +60,7 @@ export async function createServer(command: CreateServerCommand, supabaseClient:
     id: command.id,
     name: command.name,
   });
-  
+
   // Prepare the data in DB format (snake_case)
   const serverData = {
     id: command.id.toString(), // Store Discord IDs as strings to preserve precision
@@ -71,14 +71,14 @@ export async function createServer(command: CreateServerCommand, supabaseClient:
   };
 
   console.log("📊 [createServer] Prepared server data:", serverData);
-  
+
   try {
     // Validate that Supabase client is properly initialized
-    if (!supabaseClient || typeof supabaseClient.from !== 'function') {
+    if (!supabaseClient || typeof supabaseClient.from !== "function") {
       console.error("📊 [createServer] Invalid Supabase client:", supabaseClient);
       throw new Error("Invalid Supabase client");
     }
-    
+
     console.log("📊 [createServer] Executing database insert");
     // Insert the server into the database
     const { data, error } = await supabaseClient.from("servers").insert(serverData).select().single();

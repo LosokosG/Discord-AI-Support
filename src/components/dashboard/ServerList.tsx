@@ -58,7 +58,7 @@ export default function ServerList() {
         }
 
         const data = await response.json();
-        
+
         // Update both local and global state
         setServers(data);
         setLoading(false);
@@ -92,10 +92,9 @@ export default function ServerList() {
   };
 
   // Filter servers based on search query
-  const filteredServers = state.servers?.data ? 
-    state.servers.data.filter((server) => 
-      server.name.toLowerCase().includes(searchQuery.toLowerCase())
-    ) : [];
+  const filteredServers = state.servers?.data
+    ? state.servers.data.filter((server) => server.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : [];
 
   // Sort servers: those with bot first, then the rest
   const sortedServers = [...filteredServers].sort((a, b) => {

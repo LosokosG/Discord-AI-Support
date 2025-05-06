@@ -9,6 +9,7 @@ Bot Discord będzie głównym elementem systemu obsługi pierwszej linii wsparci
 - **API REST** do komunikacji między botem a dashboardem administracyjnym
 
 Główne funkcjonalności bota to:
+
 - Automatyczne odpowiadanie na pytania w skonfigurowanych kanałach
 - Wykorzystanie bazy wiedzy do kontekstualizacji odpowiedzi
 - Przekazywanie zgłoszeń do zespołu wsparcia gdy bot nie może pomóc
@@ -20,6 +21,7 @@ Główne funkcjonalności bota to:
 ### Komendy administracyjne
 
 #### Komenda: /setup
+
 - **Opis**: Inicjalna konfiguracja bota na serwerze
 - **Główny cel**: Szybkie ustawienie podstawowych parametrów działania bota
 - **Kluczowe informacje**: Wybór kanałów do monitorowania, rola do pingowania, język odpowiedzi
@@ -27,6 +29,7 @@ Główne funkcjonalności bota to:
 - **UX/Bezpieczeństwo**: Dostępne tylko dla administratorów serwera, podpowiedzi dla kanałów i ról
 
 #### Komenda: /status
+
 - **Opis**: Sprawdzenie aktualnego statusu bota i jego konfiguracji
 - **Główny cel**: Diagnostyka i uzyskanie informacji o stanie bota
 - **Kluczowe informacje**: Status (włączony/wyłączony), monitorowane kanały, statystyki użycia
@@ -34,6 +37,7 @@ Główne funkcjonalności bota to:
 - **UX/Bezpieczeństwo**: Czytelny embed z danymi, ograniczony dostęp
 
 #### Komenda: /config
+
 - **Opis**: Zarządzanie szczegółową konfiguracją bota
 - **Główny cel**: Dostosowanie działania bota do potrzeb serwera
 - **Kluczowe informacje**: Opcje konfiguracyjne pogrupowane tematycznie
@@ -41,6 +45,7 @@ Główne funkcjonalności bota to:
 - **UX/Bezpieczeństwo**: Formularze z walidacją danych wejściowych, ograniczony dostęp
 
 #### Komenda: /activate
+
 - **Opis**: Włączenie bota na serwerze
 - **Główny cel**: Aktywacja monitorowania kanałów
 - **Kluczowe informacje**: Potwierdzenie aktywacji, monitorowane kanały
@@ -48,6 +53,7 @@ Główne funkcjonalności bota to:
 - **UX/Bezpieczeństwo**: Dostępne tylko dla administratorów, zabezpieczenie przed przypadkową aktywacją
 
 #### Komenda: /deactivate
+
 - **Opis**: Wyłączenie bota na serwerze
 - **Główny cel**: Czasowe wstrzymanie monitorowania kanałów
 - **Kluczowe informacje**: Potwierdzenie deaktywacji
@@ -57,6 +63,7 @@ Główne funkcjonalności bota to:
 ### Komendy supportu
 
 #### Komenda: /tickets
+
 - **Opis**: Wyświetlenie listy przekazanych zgłoszeń
 - **Główny cel**: Zarządzanie zgłoszeniami przez zespół supportu
 - **Kluczowe informacje**: Lista aktywnych zgłoszeń, ich status i przypisanie
@@ -64,6 +71,7 @@ Główne funkcjonalności bota to:
 - **UX/Bezpieczeństwo**: Dostępne dla roli support, sortowanie i filtrowanie zgłoszeń
 
 #### Komenda: /transcript
+
 - **Opis**: Pobranie historii konkretnej konwersacji
 - **Główny cel**: Analiza przeszłych interakcji
 - **Kluczowe informacje**: Pełna historia konwersacji z datami i użytkownikami
@@ -73,6 +81,7 @@ Główne funkcjonalności bota to:
 ### Interakcje z użytkownikami
 
 #### Interakcja: Automatyczna odpowiedź na pytanie
+
 - **Opis**: Bot odpowiada na pytania użytkowników w monitorowanych kanałach
 - **Główny cel**: Automatyzacja wsparcia dla powtarzalnych pytań
 - **Kluczowe informacje**: Odpowiedź na pytanie, opcje dalszych działań
@@ -80,6 +89,7 @@ Główne funkcjonalności bota to:
 - **UX/Bezpieczeństwo**: Jasna identyfikacja jako bot, czytelność odpowiedzi, obsługa języków
 
 #### Interakcja: Przycisk "Forward to a human"
+
 - **Opis**: Przekazanie zgłoszenia do zespołu supportu
 - **Główny cel**: Eskalacja zgłoszenia gdy bot nie może pomóc
 - **Kluczowe informacje**: Potwierdzenie przekazania, pingowanie roli support
@@ -87,6 +97,7 @@ Główne funkcjonalności bota to:
 - **UX/Bezpieczeństwo**: Przycisk dostępny tylko w kontekście rozmowy z botem
 
 #### Interakcja: Wątki konwersacji
+
 - **Opis**: Automatyczne tworzenie i zarządzanie wątkami dla pytań
 - **Główny cel**: Organizacja konwersacji i zachowanie kontekstu rozmowy
 - **Kluczowe informacje**: Historia konwersacji, status zgłoszenia
@@ -94,6 +105,7 @@ Główne funkcjonalności bota to:
 - **UX/Bezpieczeństwo**: Zachowanie kontekstu między wiadomościami, przejrzystość dla użytkownika
 
 #### Interakcja: Przejęcie zgłoszenia
+
 - **Opis**: Agent supportu przejmuje zgłoszenie
 - **Główny cel**: Przypisanie zgłoszenia do konkretnej osoby
 - **Kluczowe informacje**: Status zgłoszenia, informacja dla użytkownika
@@ -103,6 +115,7 @@ Główne funkcjonalności bota to:
 ## 3. Mapa przepływu użytkownika
 
 ### Przepływ administratora
+
 1. Administrator instaluje bota na serwerze
 2. Korzysta z `/setup` do wstępnej konfiguracji:
    - Wybiera kanały, gdzie bot będzie aktywny
@@ -118,6 +131,7 @@ Główne funkcjonalności bota to:
 7. Przegląda historyczne konwersacje przez `/transcript`
 
 ### Przepływ użytkownika końcowego
+
 1. Użytkownik zadaje pytanie na monitorowanym kanale
 2. Bot automatycznie tworzy wątek do konwersacji
 3. Bot analizuje pytanie i przeszukuje bazę wiedzy
@@ -130,6 +144,7 @@ Główne funkcjonalności bota to:
 7. Użytkownik kontynuuje rozmowę z agentem supportu w tym samym wątku
 
 ### Przepływ agenta supportu
+
 1. Agent dostaje powiadomienie o nowym zgłoszeniu (ping roli)
 2. Przegląda listę zgłoszeń przez `/tickets`
 3. Wybiera zgłoszenie do obsługi i przejmuje je
@@ -188,6 +203,7 @@ src/discord-bot/
 ```
 
 Kluczowe elementy struktury:
+
 - **commands/** - implementacja komend slash podzielonych na kategorie
 - **events/** - obsługa zdarzeń Discord (wiadomości, interakcje)
 - **services/** - logika biznesowa i komunikacja z zewnętrznymi API
@@ -199,6 +215,7 @@ Kluczowe elementy struktury:
 ## 5. Kluczowe komponenty
 
 ### Serwis API (services/api.ts)
+
 - Implementacja komunikacji z backendem przez REST API
 - Zarządzanie autoryzacją przez JWT z Supabase Auth
 - Obsługa endpointów do zarządzania serwerami, konfiguracją, bazą wiedzy
@@ -206,6 +223,7 @@ Kluczowe elementy struktury:
 - Zarządzanie zgłoszeniami przekazanymi do supportu
 
 ### Serwis OpenRouter (services/openrouter.ts)
+
 - Integracja z OpenRouter.ai do komunikacji z modelami AI
 - Formatowanie zapytań z kontekstem bazy wiedzy
 - Obsługa odpowiedzi modelu i formatowanie na potrzeby Discord
@@ -213,6 +231,7 @@ Kluczowe elementy struktury:
 - Implementacja strategii retry przy błędach
 
 ### Serwis konfiguracji (services/config.ts)
+
 - Pobieranie konfiguracji z API dla każdego serwera
 - Cache'owanie konfiguracji w pamięci dla szybkiego dostępu
 - Mechanizm odświeżania konfiguracji po zmianach w dashboardzie
@@ -220,6 +239,7 @@ Kluczowe elementy struktury:
 - Walidacja uprawnień na podstawie konfiguracji
 
 ### Serwis konwersacji (services/conversation.ts)
+
 - Tworzenie i zarządzanie wątkami Discord
 - Zapamiętywanie kontekstu rozmowy między wiadomościami
 - Zapisywanie transkryptów konwersacji do bazy danych
@@ -227,6 +247,7 @@ Kluczowe elementy struktury:
 - Obsługa przekazywania zgłoszeń do zespołu supportu
 
 ### System shardingu (index.ts)
+
 - Implementacja ShardingManager do zarządzania wieloma instancjami bota
 - Równomierne rozłożenie serwerów między shardy
 - Monitorowanie wydajności poszczególnych shardów
@@ -234,8 +255,9 @@ Kluczowe elementy struktury:
 - Obsługa komunikacji między shardami
 
 ### Serwis bazy wiedzy (services/knowledge.ts)
+
 - Pobieranie dokumentów z bazy wiedzy dla danego serwera
 - Przygotowanie kontekstu dla modelu AI na podstawie pytania
 - Zarządzanie cache'owaniem bazy wiedzy dla wydajności
 - Wykrywanie braku wiedzy i proponowanie przekazania do człowieka
-- Formatowanie wiedzy dla modelu AI 
+- Formatowanie wiedzy dla modelu AI

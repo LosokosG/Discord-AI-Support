@@ -6,6 +6,7 @@
 [![React](https://img.shields.io/badge/React-19.0.0-blue.svg)](package.json)
 
 ## Table of Contents
+
 - [Project Description](#project-description)
 - [Tech Stack](#tech-stack)
 - [Getting Started Locally](#getting-started-locally)
@@ -19,6 +20,7 @@
 Discord AI Support Bot automates first-line technical support on Discord servers, enabling server owners to reduce operational costs and time spent on repetitive questions. The bot uses AI to provide instant responses to user queries 24/7, with the ability to forward complex issues to human support staff when necessary.
 
 ### Key Features:
+
 - AI-powered automatic responses based on an imported knowledge base
 - Context-aware conversations within threads
 - Human forwarding system with "Forward to a human" button
@@ -29,6 +31,7 @@ Discord AI Support Bot automates first-line technical support on Discord servers
 ## Tech Stack
 
 ### Frontend
+
 - **Framework**: React 19, Astro 5
 - **Language**: TypeScript 5
 - **Styling**: Tailwind CSS 4, Shadcn/ui
@@ -37,16 +40,19 @@ Discord AI Support Bot automates first-line technical support on Discord servers
 - **Routing**: React Router DOM
 
 ### Backend
+
 - **Supabase** for:
   - PostgreSQL database
   - Authentication
   - Backend-as-a-Service SDK
 
 ### Discord Bot
+
 - **DiscordJS** for bot implementation
 - **Sharding** architecture for scalability
 
 ### AI Integration
+
 - **Openrouter.ai** for access to various AI models:
   - OpenAI
   - Anthropic
@@ -54,6 +60,7 @@ Discord AI Support Bot automates first-line technical support on Discord servers
   - Others
 
 ### Testing
+
 - **Unit Testing**:
   - Vitest/Jest for testing JavaScript/TypeScript code
   - React Testing Library (RTL) for testing React components
@@ -63,12 +70,14 @@ Discord AI Support Bot automates first-line technical support on Discord servers
   - Supertest for API testing
 
 ### CI/CD & Hosting
+
 - **GitHub Actions** for CI/CD pipelines
 - **DigitalOcean** for hosting via Docker
 
 ## Getting Started Locally
 
 ### Prerequisites
+
 - Node.js version 22.14.0 (as specified in .nvmrc)
 - Discord developer account and bot token
 - Supabase account or self-hosted Supabase instance
@@ -77,17 +86,20 @@ Discord AI Support Bot automates first-line technical support on Discord servers
 ### Installation
 
 1. Clone the repository
+
    ```bash
    git clone https://github.com/LosokosG/Discord-AI-Support.git
    cd discord-ai-support-bot
    ```
 
 2. Install dependencies
+
    ```bash
    npm install
    ```
 
 3. Create a `.env` file in the root directory with the following variables:
+
    ```
    # Discord
    DISCORD_BOT_TOKEN=your_bot_token
@@ -97,7 +109,7 @@ Discord AI Support Bot automates first-line technical support on Discord servers
    # Supabase
    SUPABASE_URL=your_supabase_url
    SUPABASE_ANON_KEY=your_supabase_anon_key
-   
+
    # AI
    OPENROUTER_API_KEY=your_openrouter_api_key
    ```
@@ -122,6 +134,7 @@ Discord AI Support Bot automates first-line technical support on Discord servers
 The MVP (Minimum Viable Product) focuses primarily on the Discord bot functionality and its ability to effectively automate support. The admin dashboard is implemented in a basic form with plans for expansion in future versions.
 
 ### Included in MVP:
+
 - Functional and scalable Discord bot with full AI implementation
 - Architecture enabling easy configuration and management
 - Automatic responses based on knowledge base
@@ -130,6 +143,7 @@ The MVP (Minimum Viable Product) focuses primarily on the Discord bot functional
 - Basic administrative dashboard
 
 ### Excluded from MVP:
+
 - Advanced dashboard features (visualizations, extensive statistics)
 - Integrations with platforms other than Discord
 - Advanced knowledge base categorization/tagging
@@ -146,6 +160,7 @@ Current version: 0.0.1 (Early Development)
 The project is currently in early development stage focusing on implementing the core Discord bot functionality as outlined in the MVP scope.
 
 ### Roadmap:
+
 1. Implement basic Discord bot functions
 2. Develop bot sharding mechanism
 3. Integrate AI model and knowledge base handling
@@ -155,6 +170,7 @@ The project is currently in early development stage focusing on implementing the
 7. Implement bot configuration retrieval mechanisms
 
 ### Future Plans:
+
 - Expanded administrative dashboard
 - Advanced knowledge base management interface
 - Advanced shard monitoring and management system
@@ -170,7 +186,7 @@ This project is currently not licensed under any specific license. All rights re
 
 ---
 
-*Note: This README is a living document and will be updated as the project evolves.*
+_Note: This README is a living document and will be updated as the project evolves._
 
 # OpenRouter Service for Discord Bot
 
@@ -207,32 +223,29 @@ The OpenRouter service is included with your project. It's located in `src/lib/o
 ### Basic Usage
 
 ```typescript
-import { OpenRouterService, OpenRouterModel } from '../lib/openrouter';
+import { OpenRouterService, OpenRouterModel } from "../lib/openrouter";
 
 // Create an instance of the service
-const openRouter = new OpenRouterService(
-  process.env.OPENROUTER_API_KEY || '',
-  OpenRouterModel.GPT35Turbo 
-);
+const openRouter = new OpenRouterService(process.env.OPENROUTER_API_KEY || "", OpenRouterModel.GPT35Turbo);
 
 // Example function to call the AI
 async function askAI(question: string) {
   try {
     const messages = [
       {
-        role: 'system',
-        content: 'You are a helpful assistant.'
+        role: "system",
+        content: "You are a helpful assistant.",
       },
       {
-        role: 'user',
-        content: question
-      }
+        role: "user",
+        content: question,
+      },
     ];
-    
+
     const completion = await openRouter.chatCompletion(messages);
     return completion.choices[0].message.content;
   } catch (error) {
-    console.error('Error calling OpenRouter:', error);
+    console.error("Error calling OpenRouter:", error);
     throw error;
   }
 }
@@ -244,12 +257,12 @@ You can specify different models and parameters:
 
 ```typescript
 const response = await openRouter.chatCompletion(messages, {
-  model: OpenRouterModel.GPT4o,  // Use GPT-4o for better capabilities
+  model: OpenRouterModel.GPT4o, // Use GPT-4o for better capabilities
   params: {
     temperature: 0.8,
     max_tokens: 500,
-    top_p: 0.95
-  }
+    top_p: 0.95,
+  },
 });
 ```
 
@@ -258,20 +271,20 @@ You can also use structured output with JSON schema:
 ```typescript
 const response = await openRouter.chatCompletion(messages, {
   responseFormat: {
-    type: 'json_schema',
+    type: "json_schema",
     json_schema: {
-      name: 'user_info',
+      name: "user_info",
       strict: true,
       schema: {
-        type: 'object',
+        type: "object",
         properties: {
-          name: { type: 'string' },
-          age: { type: 'number' }
+          name: { type: "string" },
+          age: { type: "number" },
         },
-        required: ['name']
-      }
-    }
-  }
+        required: ["name"],
+      },
+    },
+  },
 });
 ```
 
@@ -284,11 +297,7 @@ The service includes an accurate cost estimation method:
 const { prompt_tokens, completion_tokens } = completion.usage;
 
 // Estimate cost in USD
-const cost = openRouter.estimateCost(
-  prompt_tokens, 
-  completion_tokens,
-  OpenRouterModel.Claude37Sonnet
-);
+const cost = openRouter.estimateCost(prompt_tokens, completion_tokens, OpenRouterModel.Claude37Sonnet);
 
 console.log(`Estimated cost: $${cost.toFixed(6)}`);
 ```
@@ -296,17 +305,20 @@ console.log(`Estimated cost: $${cost.toFixed(6)}`);
 ## Model Selection Guide
 
 ### Budget-friendly options:
+
 - **Gemini**: Free tier, good for basic tasks
 - **Mistral 7B**: $0.14/M input, $0.42/M output tokens
 - **Llama 3 (8B)**: $0.14/M input, $0.42/M output tokens
 - **GPT-3.5 Turbo**: $0.50/M input, $1.50/M output tokens
 
 ### Balanced performance/cost:
+
 - **Claude 3 Haiku**: $0.25/M input, $1.25/M output tokens
 - **GPT-4o Mini**: $1.50/M input, $5.00/M output tokens
 - **Mistral Medium**: $2.70/M input, $8.10/M output tokens
 
 ### High performance:
+
 - **Claude 3.7 Sonnet**: $3.00/M input, $15.00/M output tokens
 - **GPT-4o**: $5.00/M input, $15.00/M output tokens
 - **GPT-4.1**: $10.00/M input, $30.00/M output tokens
@@ -326,7 +338,7 @@ The main class for interacting with the OpenRouter API.
 
 ```typescript
 constructor(
-  apiKey: string, 
+  apiKey: string,
   defaultModel: string = OpenRouterModel.GPT35Turbo,
   defaultParams: ModelParameters = DEFAULT_PARAMS,
   baseUrl: string = "https://openrouter.ai/api/v1"
@@ -360,11 +372,11 @@ try {
   const response = await openRouter.chatCompletion(messages);
 } catch (error) {
   if (error instanceof AuthenticationError) {
-    console.error('API key is invalid or expired');
+    console.error("API key is invalid or expired");
   } else if (error instanceof RateLimitError) {
-    console.error('Rate limit exceeded, try again later');
+    console.error("Rate limit exceeded, try again later");
   } else {
-    console.error('Unexpected error:', error);
+    console.error("Unexpected error:", error);
   }
 }
 ```
@@ -384,7 +396,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - [OpenRouter](https://openrouter.ai/) for providing the API
-- DiscordJS community for the excellent Discord bot framework 
+- DiscordJS community for the excellent Discord bot framework
 
 # AI Support Bot
 
@@ -405,16 +417,19 @@ The bot can automatically respond to any message in designated channels or categ
 #### How to Set Up Auto-Responses
 
 1. Configure channels or categories where the bot should automatically respond:
+
    ```
    /config auto_respond channel:#your-channel enabled:true
    ```
 
 2. To add a whole category (all channels under it):
+
    ```
    /config auto_respond channel:Your Category Name enabled:true
    ```
 
 3. To view configured channels:
+
    ```
    /config list
    ```
@@ -431,6 +446,7 @@ The bot automatically responds in all threads created in configured channels or 
 #### Welcome Messages
 
 The bot sends a welcome message with instructions in:
+
 - New threads created in configured channels
 - New channels created in configured categories
 
@@ -449,7 +465,7 @@ The bot maintains conversation context with users to provide more natural intera
 
 - Each user can have multiple concurrent conversations across different channels and servers
 - The bot remembers the conversation history for 24 hours
-- Users are informed about context retention when starting a new conversation 
+- Users are informed about context retention when starting a new conversation
 - Conversations are automatically cleaned up after 24 hours of inactivity
 - The context is stored securely in the database
 
@@ -457,4 +473,4 @@ This feature allows the bot to reference previous messages, understand follow-up
 
 ## Installation & Setup
 
-[Your existing installation instructions here] 
+[Your existing installation instructions here]

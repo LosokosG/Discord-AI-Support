@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -12,30 +12,29 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+
     env:
-      NODE_VERSION: '22.14.0' # from .nvmrc
+      NODE_VERSION: "22.14.0" # from .nvmrc
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
+          cache: "npm"
+
       - name: Install dependencies
         run: npm ci
-      
-      - name: Create ESLint config for CI
-        run: |
-          echo 'module.exports = { rules: { "prettier/prettier": "off" } };' > .eslintrc.ci.cjs
-      
+
+      - name: Format code
+        run: npm run format
+
       - name: Lint
-        run: npx eslint --config .eslintrc.ci.cjs .
-      
+        run: npm run lint
+
       - name: Run unit tests
         run: npm run test
 
@@ -44,28 +43,28 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     timeout-minutes: 10
-    
+
     env:
-      NODE_VERSION: '22.14.0' # from .nvmrc
-    
+      NODE_VERSION: "22.14.0" # from .nvmrc
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
+          cache: "npm"
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build
         run: npm run build
-      
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build
-          path: dist/ 
+          path: dist/

@@ -261,10 +261,9 @@ export default function ServerSelector({ discordClientId = "" }: ServerSelectorP
                         <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent>
-                        {server.active 
-                          ? "Bot is installed and responding to commands" 
-                          : "Bot is installed but may have been removed from the server"
-                        }
+                        {server.active
+                          ? "Bot is installed and responding to commands"
+                          : "Bot is installed but may have been removed from the server"}
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -276,12 +275,12 @@ export default function ServerSelector({ discordClientId = "" }: ServerSelectorP
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     <a href={`/dashboard/servers/${server.id}`}>
-                      <Button className="w-full bg-slate-500 hover:bg-slate-600" variant="secondary">View Config</Button>
+                      <Button className="w-full bg-slate-500 hover:bg-slate-600" variant="secondary">
+                        View Config
+                      </Button>
                     </a>
                     <a href={getAddBotUrl(server.id, server.name, server.icon_url)} className="w-full">
-                      <Button 
-                        className="w-full gap-1 bg-[#5865F2] hover:bg-[#4752c4]"
-                      >
+                      <Button className="w-full gap-1 bg-[#5865F2] hover:bg-[#4752c4]">
                         <PlusCircle className="h-3 w-3" />
                         Reinstall
                       </Button>
@@ -295,8 +294,8 @@ export default function ServerSelector({ discordClientId = "" }: ServerSelectorP
                   Bot not yet installed on this server
                 </div>
                 <a href={getAddBotUrl(server.id, server.name, server.icon_url)} className="w-full">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full gap-2 border border-[#5865F2] bg-[#5865F2]/5 text-[#5865F2] font-semibold hover:bg-[#5865F2]/10 hover:text-[#5865F2] hover:border-[#5865F2] transition-all"
                   >
                     <PlusCircle className="h-4 w-4" />

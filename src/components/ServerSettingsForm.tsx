@@ -119,7 +119,7 @@ export const ServerSettingsForm = ({
   return (
     <Form {...form}>
       {/* @ts-expect-error - Form's handleSubmit type mismatch with our handler */}
-      <form onSubmit={form.handleSubmit(handleSubmit)} className={`space-y-8 ${disabled ? 'opacity-75' : ''}`}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className={`space-y-8 ${disabled ? "opacity-75" : ""}`}>
         {/* Sekcja: Status & Język */}
         <div className="space-y-6">
           <div className="border-b pb-2">

@@ -156,6 +156,7 @@ The service will handle the following error scenarios:
 ### Step 1: Set Up Project Structure
 
 Create the following files:
+
 - `src/lib/openrouter/types.ts` - TypeScript interfaces and types
 - `src/lib/openrouter/service.ts` - Main service implementation
 - `src/lib/openrouter/errors.ts` - Custom error classes
@@ -167,7 +168,7 @@ In `types.ts`, define interfaces for:
 
 ```typescript
 interface Message {
-  role: 'system' | 'user' | 'assistant';
+  role: "system" | "user" | "assistant";
   content: string;
 }
 
@@ -180,7 +181,7 @@ interface ModelParameters {
 }
 
 interface ResponseFormat {
-  type: 'json_schema';
+  type: "json_schema";
   json_schema: {
     name: string;
     strict: boolean;
@@ -209,15 +210,19 @@ In `errors.ts`, create custom error classes:
 
 ```typescript
 export class OpenRouterError extends Error {
-  constructor(message: string, public code: string, public status?: number) {
+  constructor(
+    message: string,
+    public code: string,
+    public status?: number
+  ) {
     super(message);
-    this.name = 'OpenRouterError';
+    this.name = "OpenRouterError";
   }
 }
 
 export class AuthenticationError extends OpenRouterError {
   constructor(message: string) {
-    super(message, 'authentication_error', 401);
+    super(message, "authentication_error", 401);
   }
 }
 
@@ -251,8 +256,8 @@ Implement the specific methods for interacting with OpenRouter API:
 // Example usage in service
 function createSystemMessage(content: string): Message {
   return {
-    role: 'system',
-    content
+    role: "system",
+    content,
   };
 }
 ```
@@ -263,8 +268,8 @@ function createSystemMessage(content: string): Message {
 // Example usage in service
 function createUserMessage(content: string): Message {
   return {
-    role: 'user',
-    content
+    role: "user",
+    content,
   };
 }
 ```
@@ -274,9 +279,9 @@ function createUserMessage(content: string): Message {
 ```typescript
 // Example in service
 const jsonResponseFormat: ResponseFormat = {
-  type: 'json_schema',
+  type: "json_schema",
   json_schema: {
-    name: 'search_results',
+    name: "search_results",
     strict: true,
     schema: {
       type: "object",
@@ -287,15 +292,15 @@ const jsonResponseFormat: ResponseFormat = {
             type: "object",
             properties: {
               title: { type: "string" },
-              url: { type: "string" }
+              url: { type: "string" },
             },
-            required: ["title", "url"]
-          }
-        }
+            required: ["title", "url"],
+          },
+        },
       },
-      required: ["results"]
-    }
-  }
+      required: ["results"],
+    },
+  },
 };
 ```
 
@@ -327,6 +332,7 @@ export const DEFAULT_PARAMS: ModelParameters = {
 ### Step 7: Test the Implementation
 
 Create unit tests for each component of the service:
+
 - Authentication flow
 - Request formatting
 - Response parsing
@@ -336,7 +342,8 @@ Create unit tests for each component of the service:
 ### Step 8: Documentation
 
 Create comprehensive documentation for the service including:
+
 - Setup instructions
 - Usage examples
 - Configuration options
-- Troubleshooting guides 
+- Troubleshooting guides

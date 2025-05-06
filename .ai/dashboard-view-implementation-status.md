@@ -16,4 +16,4 @@
 - Zastosować spójnie motyw wizualny Discord we wszystkich pozostałych widokach i komponentach dashboardu (np. Ustawienia Serwera, Prompt Systemowy, strona główna serwera, widok tworzenia/edycji dokumentu, komponenty `Topbar`, `Sidebar`, `Drawer`).
 - Dopracować szczegóły stylizacji dla konkretnych komponentów `shadcn/ui` (przyciski, pola input, karty, alerty, itp.), aby w pełni odpowiadały wyglądowi Discorda.
 - Przetestować responsywność i upewnić się, że motyw działa poprawnie na różnych rozmiarach ekranu.
-- (Opcjonalnie) Zaimplementować przełącznik motywów, jeśli w przyszłości wymagane będzie wsparcie dla jasnego motywu. 
+- (Opcjonalnie) Zaimplementować przełącznik motywów, jeśli w przyszłości wymagane będzie wsparcie dla jasnego motywu.
