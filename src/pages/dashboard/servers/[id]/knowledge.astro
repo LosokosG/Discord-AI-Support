@@ -2,7 +2,7 @@
 /** eslint-disable no-console */
 
 import DashboardLayout from "@/layouts/DashboardLayout.astro";
-import DiscordKnowledgeList from "@/components/knowledge/DiscordKnowledgeList";
+import { CombinedKnowledgeView } from "@/components/knowledge/CombinedKnowledgeView";
 import { getDocumentsByServerId } from "@/lib/services/documents";
 import type { DocumentList as DocumentListType } from "@/types";
 import { getServerById } from "@/lib/services/serverService";
@@ -56,7 +56,7 @@ const serverIcon = server.icon_url || undefined;
   activeTab="knowledge"
   serverName={serverName}
   serverIcon={serverIcon}
-  showTabs={true}
+  showTabs={false}
 >
-  <DiscordKnowledgeList client:load serverId={id} initialDocuments={documents} />
+  <CombinedKnowledgeView client:load serverId={id} initialDocuments={documents} />
 </DashboardLayout>

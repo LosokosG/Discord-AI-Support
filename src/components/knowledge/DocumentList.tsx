@@ -20,9 +20,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, Search, Filter, MoreVertical, FileType, Trash, Edit, RefreshCw } from "lucide-react";
 import type { DocumentList, KnowledgeDocument } from "@/types";
-import { getDocumentsByServerId, deleteDocument, reindexDocument } from "@/lib/services/documents";
-import { useSupabase } from "@/components/hooks/useSupabase";
-import { toast } from "@/components/ui/sonner";
+import { documentService } from "@/lib/services/documentService";
+import { toast } from "sonner";
 
 interface DocumentListProps {
   initialDocuments: DocumentList | null;
@@ -40,12 +39,9 @@ export default function DocumentList({ initialDocuments, serverId }: DocumentLis
   );
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<KnowledgeDocument | null>(null);
-  const supabase = useSupabase();
 
   // Load documents when page, search, or filter changes
   useEffect(() => {
-    if (!supabase) return;
-
     async function loadDocuments() {
       setIsLoading(true);
       try {
@@ -62,9 +58,7 @@ export default function DocumentList({ initialDocuments, serverId }: DocumentLis
           params.fileType = selectedFilter;
         }
 
-        if (!supabase) return;
-
-        const result = await getDocumentsByServerId(serverId, params, supabase);
+        const result = await documentService.getDocuments(serverId, params);
         setDocuments(result.data);
         setTotalPages(Math.ceil(result.total / result.pageSize));
       } catch (error) {
@@ -76,7 +70,7 @@ export default function DocumentList({ initialDocuments, serverId }: DocumentLis
     }
 
     loadDocuments();
-  }, [page, searchQuery, selectedFilter, serverId, supabase]);
+  }, [page, searchQuery, selectedFilter, serverId]);
 
   // Handle search input
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,11 +104,11 @@ export default function DocumentList({ initialDocuments, serverId }: DocumentLis
   };
 
   const handleDeleteDocument = async () => {
-    if (!documentToDelete || !supabase) return;
+    if (!documentToDelete) return;
 
     setIsLoading(true);
     try {
-      await deleteDocument(serverId, documentToDelete.id, supabase);
+      await documentService.deleteDocument(serverId, documentToDelete.id);
 
       // Remove from local state
       setDocuments((docs) => docs.filter((doc) => doc.id !== documentToDelete.id));
@@ -134,10 +128,8 @@ export default function DocumentList({ initialDocuments, serverId }: DocumentLis
 
   // Handle document reindexing
   const handleReindexDocument = async (document: KnowledgeDocument) => {
-    if (!supabase) return;
-
     try {
-      await reindexDocument(serverId, document.id, supabase);
+      await documentService.reindexDocument(serverId, document.id);
       toast.success(`Document "${document.title}" is being reindexed`);
     } catch (error) {
       console.error("Error reindexing document:", error);
@@ -220,7 +212,9 @@ export default function DocumentList({ initialDocuments, serverId }: DocumentLis
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() => (window.location.href = `/servers/${serverId}/knowledge/${document.id}/edit`)}
+                          onClick={() =>
+                            (window.location.href = `/dashboard/servers/${serverId}/knowledge/${document.id}/edit`)
+                          }
                         >
                           <Edit className="h-4 w-4 mr-2" />
                           Edit

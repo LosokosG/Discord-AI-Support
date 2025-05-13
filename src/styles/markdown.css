@@ -1,0 +1,200 @@
+/* GitHub-like Markdown styles for Discord theme */
+.markdown-body {
+  color: inherit;
+  line-height: 1.6;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #ffffff;
+}
+
+.markdown-body h1 {
+  font-size: 2em;
+  border-bottom: 1px solid #3f4147;
+  padding-bottom: 0.3em;
+}
+
+.markdown-body h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid #3f4147;
+  padding-bottom: 0.3em;
+}
+
+.markdown-body h3 {
+  font-size: 1.25em;
+}
+
+.markdown-body h4 {
+  font-size: 1em;
+}
+
+.markdown-body h5 {
+  font-size: 0.875em;
+}
+
+.markdown-body h6 {
+  font-size: 0.85em;
+  color: #8e9297;
+}
+
+.markdown-body a {
+  color: #5865f2;
+  text-decoration: none;
+}
+
+.markdown-body a:hover {
+  text-decoration: underline;
+}
+
+.markdown-body strong {
+  font-weight: 600;
+}
+
+.markdown-body img {
+  max-width: 100%;
+  box-sizing: border-box;
+  background-color: #2b2d31;
+  border-radius: 6px;
+}
+
+.markdown-body hr {
+  height: 0.25em;
+  padding: 0;
+  margin: 24px 0;
+  background-color: #3f4147;
+  border: 0;
+}
+
+.markdown-body blockquote {
+  padding: 0 1em;
+  color: #8e9297;
+  border-left: 0.25em solid #3f4147;
+  margin: 0 0 16px 0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 2em;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-body ol ol,
+.markdown-body ul ol {
+  list-style-type: lower-roman;
+}
+
+.markdown-body ul ul,
+.markdown-body ol ul {
+  list-style-type: circle;
+}
+
+.markdown-body ul ul ul,
+.markdown-body ul ol ul,
+.markdown-body ol ul ul,
+.markdown-body ol ol ul {
+  list-style-type: square;
+}
+
+.markdown-body li {
+  line-height: 1.6;
+}
+
+.markdown-body li + li {
+  margin-top: 0.25em;
+}
+
+.markdown-body code {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  background-color: #232428;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.markdown-body pre {
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: #232428;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.markdown-body pre code {
+  padding: 0;
+  margin: 0;
+  font-size: 100%;
+  background-color: transparent;
+  border: 0;
+}
+
+.markdown-body table {
+  display: block;
+  width: 100%;
+  overflow: auto;
+  margin-top: 0;
+  margin-bottom: 16px;
+  border-collapse: collapse;
+}
+
+.markdown-body table th {
+  font-weight: 600;
+  padding: 6px 13px;
+  border: 1px solid #3f4147;
+  background-color: #2b2d31;
+}
+
+.markdown-body table td {
+  padding: 6px 13px;
+  border: 1px solid #3f4147;
+}
+
+.markdown-body table tr {
+  background-color: #313338;
+  border-top: 1px solid #3f4147;
+}
+
+.markdown-body table tr:nth-child(2n) {
+  background-color: #2b2d31;
+}
+
+/* Syntax highlighting overrides for Discord theme */
+.hljs {
+  background: #232428 !important;
+}
+
+/* Math rendering styles */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 0;
+}
+
+/* Task lists */
+.markdown-body ul.contains-task-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.markdown-body .contains-task-list li {
+  position: relative;
+  padding-left: 1.5em;
+}
+
+.markdown-body .task-list-item-checkbox {
+  position: absolute;
+  left: 0;
+  margin-top: 0.25em;
+}

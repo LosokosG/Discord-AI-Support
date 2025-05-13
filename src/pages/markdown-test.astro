@@ -1,0 +1,10 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { MarkdownTester } from "@/components/knowledge/MarkdownTester";
+---
+
+<Layout title="Test formatowania Markdown">
+  <main class="container max-w-6xl mx-auto py-8">
+    <MarkdownTester client:load />
+  </main>
+</Layout>

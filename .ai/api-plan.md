@@ -35,13 +35,13 @@ Authentication flows leverage Supabase Auth; all subsequent calls require the `A
 
 ### 2.2 Servers
 
-| Method | Path            | Description                                       | Query Params                          | Success              | Error                          |
-| ------ | --------------- | ------------------------------------------------- | ------------------------------------- | -------------------- | ------------------------------ |
-| GET    | `/servers`      | List servers current user administers             | `page`, `pageSize`, `q` (name search) | 200 → `ServerList`   | 401, 500                       |
-| POST   | `/servers`      | Register a new server and optional initial config | —                                     | 201 → `Server`       | 400 (validation), 409 (exists) |
-| GET    | `/servers/{id}` | Get single server                                 | —                                     | 200 → `ServerDetail` | 404, 403                       |
-| PATCH  | `/servers/{id}` | Update mutable fields in `servers.config`         | —                                     | 200 → `Server`       | 400, 403, 404                  |
-| DELETE | `/servers/{id}` | De‑activate server (sets `active=false`)          | —                                     | 204                  | 403, 404                       |
+| Method | Path                | Description                                       | Query Params                          | Success              | Error                          |
+| ------ | ------------------- | ------------------------------------------------- | ------------------------------------- | -------------------- | ------------------------------ |
+| GET    | `/api/servers`      | List servers current user administers             | `page`, `pageSize`, `q` (name search) | 200 → `ServerList`   | 401, 500                       |
+| POST   | `/api/servers`      | Register a new server and optional initial config | —                                     | 201 → `Server`       | 400 (validation), 409 (exists) |
+| GET    | `/api/servers/{id}` | Get single server                                 | —                                     | 200 → `ServerDetail` | 404, 403                       |
+| PATCH  | `/api/servers/{id}` | Update mutable fields in `servers.config`         | —                                     | 200 → `Server`       | 400, 403, 404                  |
+| DELETE | `/api/servers/{id}` | De‑activate server (sets `active=false`)          | —                                     | 204                  | 403, 404                       |
 
 `ServerList` response example
 
@@ -70,34 +70,34 @@ Authentication flows leverage Supabase Auth; all subsequent calls require the `A
 
 ### 2.3 Server Configuration Convenience Endpoints
 
-| Method | Path                           | Description                                                         |
-| ------ | ------------------------------ | ------------------------------------------------------------------- |
-| POST   | `/servers/{id}/activate`       | Enable the bot (`config.enabled=true`)                              |
-| POST   | `/servers/{id}/deactivate`     | Disable the bot (`config.enabled=false`)                            |
-| POST   | `/servers/{id}/refresh-config` | Force bot to reload config immediately (backend publishes a NOTIFY) |
+| Method | Path                               | Description                                                         |
+| ------ | ---------------------------------- | ------------------------------------------------------------------- |
+| POST   | `/api/servers/{id}/activate`       | Enable the bot (`config.enabled=true`)                              |
+| POST   | `/api/servers/{id}/deactivate`     | Disable the bot (`config.enabled=false`)                            |
+| POST   | `/api/servers/{id}/refresh-config` | Force bot to reload config immediately (backend publishes a NOTIFY) |
 
 ---
 
 ### 2.4 Server Admins
 
-| Method | Path                            | Description             |
-| ------ | ------------------------------- | ----------------------- |
-| GET    | `/servers/{id}/admins`          | List current admins     |
-| POST   | `/servers/{id}/admins`          | Add admin (`discordId`) |
-| DELETE | `/servers/{id}/admins/{userId}` | Remove admin            |
+| Method | Path                                | Description             |
+| ------ | ----------------------------------- | ----------------------- |
+| GET    | `/api/servers/{id}/admins`          | List current admins     |
+| POST   | `/api/servers/{id}/admins`          | Add admin (`discordId`) |
+| DELETE | `/api/servers/{id}/admins/{userId}` | Remove admin            |
 
 ---
 
 ### 2.5 Knowledge Documents
 
-| Method | Path                                      | Description                     | Notes                                                                  |
-| ------ | ----------------------------------------- | ------------------------------- | ---------------------------------------------------------------------- |
-| GET    | `/servers/{id}/documents`                 | Paginated list of documents     | Supports `q`, `page`, `pageSize`, `fileType`                           |
-| POST   | `/servers/{id}/documents`                 | Upload new document             | `multipart/form-data` (file) or JSON body `{title, content, fileType}` |
-| GET    | `/servers/{id}/documents/{docId}`         | Get document metadata & content |
-| PATCH  | `/servers/{id}/documents/{docId}`         | Update title/content            |
-| DELETE | `/servers/{id}/documents/{docId}`         | Delete document                 |
-| POST   | `/servers/{id}/documents/{docId}/reindex` | Re‑run indexing (admin)         |
+| Method | Path                                          | Description                     | Notes                                                                  |
+| ------ | --------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------- |
+| GET    | `/api/servers/{id}/documents`                 | Paginated list of documents     | Supports `q`, `page`, `pageSize`, `fileType`                           |
+| POST   | `/api/servers/{id}/documents`                 | Upload new document             | `multipart/form-data` (file) or JSON body `{title, content, fileType}` |
+| GET    | `/api/servers/{id}/knowledge/{docId}`         | Get document metadata & content |
+| PATCH  | `/api/servers/{id}/knowledge/{docId}`         | Update title/content            |
+| DELETE | `/api/servers/{id}/knowledge/{docId}`         | Delete document                 |
+| POST   | `/api/servers/{id}/knowledge/{docId}/reindex` | Re‑run indexing (admin)         |
 
 `KnowledgeDocument` response
 
@@ -115,45 +115,45 @@ Authentication flows leverage Supabase Auth; all subsequent calls require the `A
 
 ### 2.6 Conversations (Bot & Dashboard)
 
-| Method | Path                                   | Description                                 | Filters                                              |
-| ------ | -------------------------------------- | ------------------------------------------- | ---------------------------------------------------- |
-| GET    | `/servers/{id}/conversations`          | List conversations                          | `status`, `from`, `to`, `page`, `pageSize`, `userId` |
-| POST   | `/servers/{id}/conversations`          | Bot creates/updates conversation transcript | Consumed by bot service                              |
-| GET    | `/servers/{id}/conversations/{convId}` | Conversation detail                         |
-| PATCH  | `/servers/{id}/conversations/{convId}` | Update `status` or append transcript chunk  |
+| Method | Path                                       | Description                                 | Filters                                              |
+| ------ | ------------------------------------------ | ------------------------------------------- | ---------------------------------------------------- |
+| GET    | `/api/servers/{id}/conversations`          | List conversations                          | `status`, `from`, `to`, `page`, `pageSize`, `userId` |
+| POST   | `/api/servers/{id}/conversations`          | Bot creates/updates conversation transcript | Consumed by bot service                              |
+| GET    | `/api/servers/{id}/conversations/{convId}` | Conversation detail                         |
+| PATCH  | `/api/servers/{id}/conversations/{convId}` | Update `status` or append transcript chunk  |
 
 ---
 
 ### 2.7 Forwarded Tickets
 
-| Method | Path                                           | Description                                               |
-| ------ | ---------------------------------------------- | --------------------------------------------------------- |
-| GET    | `/servers/{id}/tickets`                        | List forwarded tickets                                    |
-| POST   | `/servers/{id}/conversations/{convId}/forward` | Create a forwarded ticket (bot or dashboard)              |
-| PATCH  | `/servers/{id}/tickets/{ticketId}`             | Update ticket (`assignedTo`, `status`, `resolutionNotes`) |
-| GET    | `/servers/{id}/tickets/{ticketId}`             | Ticket detail                                             |
+| Method | Path                                               | Description                                               |
+| ------ | -------------------------------------------------- | --------------------------------------------------------- |
+| GET    | `/api/servers/{id}/tickets`                        | List forwarded tickets                                    |
+| POST   | `/api/servers/{id}/conversations/{convId}/forward` | Create a forwarded ticket (bot or dashboard)              |
+| PATCH  | `/api/servers/{id}/tickets/{ticketId}`             | Update ticket (`assignedTo`, `status`, `resolutionNotes`) |
+| GET    | `/api/servers/{id}/tickets/{ticketId}`             | Ticket detail                                             |
 
 ---
 
 ### 2.8 Analytics
 
-| Method | Path                             | Description              |
-| ------ | -------------------------------- | ------------------------ | ------------ |
-| GET    | `/servers/{id}/analytics`        | List daily metrics       | `from`, `to` |
-| GET    | `/servers/{id}/analytics/{date}` | Metrics for specific day |
+| Method | Path                                 | Description              |
+| ------ | ------------------------------------ | ------------------------ | ------------ |
+| GET    | `/api/servers/{id}/analytics`        | List daily metrics       | `from`, `to` |
+| GET    | `/api/servers/{id}/analytics/{date}` | Metrics for specific day |
 
 ---
 
 ### 2.9 Billing (Post‑MVP optional)
 
-| Method | Path                                 | Description                |
-| ------ | ------------------------------------ | -------------------------- |
-| GET    | `/billing/plans`                     | Public list of plans       |
-| GET    | `/servers/{id}/subscription`         | Current subscription       |
-| POST   | `/servers/{id}/subscription`         | Subscribe to plan          |
-| PATCH  | `/servers/{id}/subscription`         | Update/cancel subscription |
-| GET    | `/servers/{id}/invoices`             | List invoices              |
-| GET    | `/servers/{id}/invoices/{invoiceId}` | Invoice detail             |
+| Method | Path                                     | Description                |
+| ------ | ---------------------------------------- | -------------------------- |
+| GET    | `/billing/plans`                         | Public list of plans       |
+| GET    | `/api/servers/{id}/subscription`         | Current subscription       |
+| POST   | `/api/servers/{id}/subscription`         | Subscribe to plan          |
+| PATCH  | `/api/servers/{id}/subscription`         | Update/cancel subscription |
+| GET    | `/api/servers/{id}/invoices`             | List invoices              |
+| GET    | `/api/servers/{id}/invoices/{invoiceId}` | Invoice detail             |
 
 ## 3. Authentication & Authorization
 

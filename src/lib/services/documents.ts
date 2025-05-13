@@ -99,7 +99,56 @@ export async function createDocument(
   createdBy: string,
   supabaseClient: SupabaseClient
 ) {
-  // We only support plain text or markdown now, no file storage needed
+  // Check if we have a valid user ID
+  if (!createdBy) {
+    throw new Error("User must be authenticated to create documents");
+  }
+
+  // Verify the authenticated user exists in the database
+  const { data: user, error: userError } = await supabaseClient
+    .from("users")
+    .select("id")
+    .eq("id", createdBy)
+    .maybeSingle();
+
+  if (userError) {
+    console.error("Error verifying user:", userError);
+    throw new Error("Failed to verify user authentication");
+  }
+
+  // If user doesn't exist, try to use the auth user info to create a record
+  if (!user) {
+    // Get the authenticated user from the session
+    const { data: authData, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !authData.user) {
+      throw new Error("User not authenticated or does not exist in the database");
+    }
+
+    // Make sure the auth user ID matches the provided createdBy ID
+    if (authData.user.id !== createdBy) {
+      throw new Error("Authentication mismatch - user ID does not match authenticated user");
+    }
+
+    // Insert user record if they don't exist
+    const { error: insertError } = await supabaseClient.from("users").insert({
+      id: authData.user.id,
+      discord_id: authData.user.user_metadata?.discord_id || authData.user.user_metadata?.provider_id || "unknown",
+      discord_username:
+        authData.user.user_metadata?.full_name ||
+        authData.user.user_metadata?.name ||
+        authData.user.user_metadata?.custom_claims?.global_name ||
+        "Unknown User",
+      avatar_url: authData.user.user_metadata?.avatar_url || authData.user.user_metadata?.picture || null,
+    });
+
+    if (insertError) {
+      console.error("Error creating user record:", insertError);
+      throw new Error("Failed to create user record");
+    }
+  }
+
+  // Create the document with the authenticated user as creator
   const { data: document, error } = await supabaseClient
     .from("knowledge_documents")
     .insert({

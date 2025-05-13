@@ -3,10 +3,14 @@ APP_PORT=3000
 PORT=3000
 NODE_OPTIONS=--experimental-vm-modules --no-warnings
 
-# Supabase Configuration
-PUBLIC_SUPABASE_URL=http://localhost:8000
-PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+# Supabase Configuration (teraz łączymy się z instancją Supabase CLI)
+# Domyślnie Supabase CLI uruchamia API (Kong) na porcie 54321 na hoście.
+# Z kontenera Docker na Docker Desktop (Windows/Mac) użyj host.docker.internal
+PUBLIC_SUPABASE_URL=http://host.docker.internal:54321
+
+# Klucze API uzyskasz z komendy `npx supabase status` po uruchomieniu projektu Supabase
+PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_from_cli
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_from_cli
 
 # OpenRouter API
 OPENROUTER_API_KEY=your_openrouter_api_key
@@ -17,16 +21,13 @@ DISCORD_CLIENT_ID=your_discord_client_id
 DISCORD_SECRET=your_discord_client_secret
 DISCORD_REDIRECT_URI=your_discord_redirect_uri
 
-# Supabase Database
-POSTGRES_PASSWORD=your_strong_postgres_password
-
-# Supabase Auth
-SITE_URL=http://localhost:3000
-URI_ALLOW_LIST=http://localhost:3000,http://127.0.0.1:3000
-JWT_SECRET=your_jwt_secret_at_least_32_characters_long
-GOTRUE_DISABLE_SIGNUP=false
-
-# Service Ports
-KONG_PORT=8000
-KONG_ADMIN_PORT=8001
-POSTGRES_PORT=54322 
+# Poniższe zmienne nie są już potrzebne w tym pliku, 
+# ponieważ Supabase jest zarządzane przez CLI:
+# POSTGRES_PASSWORD=your_strong_postgres_password
+# SITE_URL=http://localhost:3000
+# URI_ALLOW_LIST=http://localhost:3000,http://127.0.0.1:3000
+# JWT_SECRET=your_jwt_secret_at_least_32_characters_long
+# GOTRUE_DISABLE_SIGNUP=false
+# KONG_PORT=8000
+# KONG_ADMIN_PORT=8001
+# POSTGRES_PORT=54322 

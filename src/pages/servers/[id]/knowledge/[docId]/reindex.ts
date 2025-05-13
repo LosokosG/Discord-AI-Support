@@ -1,35 +1,14 @@
-import { reindexDocument } from "@/lib/services/documents";
-import type { APIContext } from "astro";
+import type { APIRoute } from "astro";
 
 export const prerender = false;
 
-type Context = APIContext<{
-  id: string;
-  docId: string;
-}>;
+export const POST: APIRoute = async ({ params, redirect }) => {
+  const { id: serverId, docId } = params;
 
-export async function POST({ params, locals, redirect }: Context) {
-  const { id, docId } = params;
-
-  if (!id || !docId) {
-    throw new Error("Missing required parameters: id or docId");
+  if (!serverId || !docId) {
+    return new Response("Missing parameters", { status: 400 });
   }
 
-  const serverId = id;
-  const documentId = docId;
-
-  try {
-    const supabase = locals.supabase;
-
-    // Call reindex function
-    await reindexDocument(serverId, documentId, supabase);
-
-    // Redirect back to document view with a success parameter
-    return redirect(`/servers/${serverId}/knowledge/${documentId}?reindexed=true`, 303);
-  } catch (error) {
-    console.error("Error reindexing document:", error);
-
-    // Redirect back to document view with an error parameter
-    return redirect(`/servers/${serverId}/knowledge/${documentId}?error=reindex`, 303);
-  }
-}
+  // Redirect to the documents endpoint
+  return redirect(`/api/servers/${serverId}/documents/${docId}/reindex`, 307);
+};

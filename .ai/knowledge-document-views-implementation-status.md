@@ -29,3 +29,7 @@
   - Testowanie funkcjonalności reindeksowania (używając przycisku "Reindex")
   - Sprawdzenie działania listy dokumentów i filtrowania
 - Dodać obsługę błędów i komunikaty informacyjne dla użytkownika.
+
+- Aktualnie dodawanie nowych plików nie działa ( przestało być funkcjonalne po zmianach wykoananych poza implementacją tego widoku )
+- Trzeba to naprawić aby ponownie poprawnie łączył się z bazą danych i pozwalał na dodawanie nowych plików
+- Przanalizuj codebase w poszukiwaniu szczegółowych informacji o tym jak zimplementowane jest API knowledge documents oraz podejmij działania aby naprawić aktualny widok żeby działał.

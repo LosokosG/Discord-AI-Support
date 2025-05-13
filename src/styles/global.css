@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "../styles/theme.css";
+@import "./markdown.css";
+@import "./highlight.css";
 
 /* Discord "gg sans" fonts */
 @font-face {

@@ -11,6 +11,7 @@ import { Loader2, FileType } from "lucide-react";
 import { useState } from "react";
 import { documentService } from "@/lib/services/documentService";
 import { DocumentPreview } from "./DocumentPreview";
+import type { DocumentFormData } from "@/types/knowledge";
 
 // Define schema
 const documentSchema = z.object({
@@ -23,15 +24,9 @@ const documentSchema = z.object({
 export type DocumentFormValues = z.infer<typeof documentSchema>;
 
 interface DocumentFormProps {
-  action: string;
-  method?: "POST" | "PATCH";
   serverId: string;
-  initialData?: {
-    id?: string;
-    title?: string;
-    content?: string;
-    fileType?: string;
-  };
+  initialData?: DocumentFormData;
+  onDocumentSaved?: () => void;
 }
 
 // Custom hook for form management
@@ -56,13 +51,16 @@ function useDocumentForm(initialData?: DocumentFormProps["initialData"]) {
   };
 }
 
-export default function DocumentForm({ serverId, initialData }: DocumentFormProps) {
+export default function DocumentForm({ serverId, initialData, onDocumentSaved }: DocumentFormProps) {
   const isEditing = Boolean(initialData?.id);
   const { form, content, fileType, isSubmitting } = useDocumentForm(initialData);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmittingForm, setIsSubmittingForm] = useState(false);
 
   const onSubmit = async (data: DocumentFormValues) => {
     setSubmitError(null);
+    setIsSubmittingForm(true);
+
     try {
       let response;
 
@@ -79,13 +77,19 @@ export default function DocumentForm({ serverId, initialData }: DocumentFormProp
         throw new Error(errorData?.error?.message || response.statusText || "An error occurred");
       }
 
-      // Redirect to the knowledge base list
-      window.location.href = `/servers/${serverId}/knowledge`;
+      // Wywołaj callback zamiast przekierowywać
+      if (onDocumentSaved) {
+        onDocumentSaved();
+      } else {
+        // Fallback do przekierowania, jeśli callback nie istnieje
+        window.location.href = `/dashboard/servers/${serverId}/knowledge`;
+      }
     } catch (error) {
       console.error("Form submission error:", error);
       setSubmitError(
         error instanceof Error ? error.message : "An error occurred while submitting the form. Please try again."
       );
+      setIsSubmittingForm(false);
     }
   };
 
@@ -121,21 +125,28 @@ export default function DocumentForm({ serverId, initialData }: DocumentFormProp
                 Document Type <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isEditing}>
-                  <SelectTrigger id="fileType" className="w-full">
-                    <SelectValue placeholder="Select document type" />
-                  </SelectTrigger>
+                <Select
+                  value={field.value}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                  }}
+                >
+                  <FormControl>
+                    <SelectTrigger id="fileType" className="w-full">
+                      <SelectValue placeholder="Select document type" />
+                    </SelectTrigger>
+                  </FormControl>
                   <SelectContent>
                     <SelectItem value="md">
                       <div className="flex items-center">
                         <FileType className="h-4 w-4 mr-2" />
-                        <span>Markdown (.md)</span>
+                        <span>Markdown</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="txt">
                       <div className="flex items-center">
                         <FileType className="h-4 w-4 mr-2" />
-                        <span>Plain Text (.txt)</span>
+                        <span>Plain Text</span>
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -186,13 +197,13 @@ export default function DocumentForm({ serverId, initialData }: DocumentFormProp
           <Button
             type="button"
             variant="outline"
-            onClick={() => (window.location.href = `/servers/${serverId}/knowledge`)}
-            disabled={isSubmitting}
+            onClick={() => (window.location.href = `/dashboard/servers/${serverId}/knowledge`)}
+            disabled={isSubmittingForm}
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (
+          <Button type="submit" disabled={isSubmittingForm}>
+            {isSubmittingForm ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 {isEditing ? "Updating..." : "Creating..."}
