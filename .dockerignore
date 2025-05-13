@@ -1,0 +1,39 @@
+# Git files
+.git
+.gitignore
+
+# IDE and editor specific
+.vscode/
+.idea/
+.cursor/
+.DS_Store
+
+# Node modules from host - will be installed in Docker
+node_modules/
+
+# Build output from host - will be built in Docker
+dist/
+build/
+.astro/
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test reports and playwright stuff
+e2e/
+playwright-report/
+coverage/
+
+# Local Supabase state (if you manage it separately)
+supabase/.temp/
+
+# Environment files (sensitive, should not be in image)
+.env
+.env.*
+!.env.example
+
+# Backup directories
+.backup/ 
