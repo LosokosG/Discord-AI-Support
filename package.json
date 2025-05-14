@@ -57,6 +57,7 @@
     "dotenv": "^16.5.0",
     "lucide-react": "^0.507.0",
     "node-fetch": "^3.3.2",
+    "openssl": "^2.0.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-hook-form": "^7.56.1",

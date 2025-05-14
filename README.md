@@ -474,3 +474,5 @@ This feature allows the bot to reference previous messages, understand follow-up
 ## Installation & Setup
 
 [Your existing installation instructions here]
+
+

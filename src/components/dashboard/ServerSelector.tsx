@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Search, ServerCrash, Shield, CircleSlashed, Info, Bot } from "lucide-react";
+import { PlusCircle, Search, ServerCrash, Shield, CircleSlashed, Info, Bot, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 interface Server {
   id: string;
@@ -26,32 +27,77 @@ export default function ServerSelector({ discordClientId = "" }: ServerSelectorP
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    const fetchServers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const fetchServers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        const response = await fetch("/api/servers/list");
+      console.log("Fetching server list...");
+      const response = await fetch("/api/servers/list");
 
-        if (!response.ok) {
+      // Log response status for debugging
+      console.log("Server list API response status:", response.status);
+
+      if (!response.ok) {
+        let errorMessage = "Failed to load server list";
+        try {
           const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to load server list");
+          errorMessage = errorData.error?.message || errorMessage;
+          console.error("Server list API error:", errorData);
+        } catch (e) {
+          console.error("Failed to parse error response:", e);
+          // Try to get text response
+          try {
+            const textResponse = await response.text();
+            console.error("Error response text:", textResponse);
+          } catch (textError) {
+            console.error("Failed to get error response text:", textError);
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      try {
+        const responseText = await response.text();
+        console.log("Server list API response text:", responseText);
+
+        // Parse the JSON response
+        const data = JSON.parse(responseText);
+        console.log("Server list parsed data:", data);
+
+        if (!data.guilds) {
+          throw new Error("Unexpected response format: missing guilds property");
         }
 
-        const data = await response.json();
         setServers(data.guilds);
-      } catch (err: unknown) {
-        console.error("Error fetching servers:", err);
-        setError(err instanceof Error ? err.message : "An unknown error occurred");
-      } finally {
-        setLoading(false);
+        if (data.guilds.length === 0) {
+          console.log("No servers returned from API");
+        }
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        throw new Error("Failed to parse server data");
       }
-    };
+    } catch (err: unknown) {
+      console.error("Error fetching servers:", err);
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
 
+  useEffect(() => {
     fetchServers();
   }, []);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchServers();
+  };
 
   // Filter servers based on search query
   const filteredServers = servers.filter((server) => server.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -109,7 +155,7 @@ export default function ServerSelector({ discordClientId = "" }: ServerSelectorP
   };
 
   // Loading skeletons
-  if (loading) {
+  if (loading && !isRefreshing) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 p-4">
         {Array.from({ length: 6 }).map((_, index) => (
@@ -133,8 +179,36 @@ export default function ServerSelector({ discordClientId = "" }: ServerSelectorP
       <div className="flex flex-col items-center justify-center p-8 text-center">
         <ServerCrash className="h-16 w-16 text-destructive mb-4" />
         <h3 className="text-2xl font-bold mb-2">Error Loading Servers</h3>
-        <p className="text-muted-foreground mb-6">{error}</p>
-        <Button onClick={() => window.location.reload()}>Try Again</Button>
+        <p className="text-muted-foreground mb-2">{error}</p>
+        <p className="text-muted-foreground mb-6 text-sm">
+          You can try refreshing the page or logging out and back in.
+          <br />
+          You can also access your servers directly using the server URL.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button onClick={handleRefresh} className="bg-[#5865F2] hover:bg-[#4752c4]">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+          <Button variant="outline" onClick={() => (window.location.href = "/auth/logout")}>
+            Logout & Login Again
+          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => (window.location.href = "/dashboard/servers/1046510699809079448")}
+                >
+                  Direct Access Example
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Access a server directly using its ID in the URL</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
     );
   }
@@ -157,7 +231,16 @@ export default function ServerSelector({ discordClientId = "" }: ServerSelectorP
   return (
     <div className="container py-6">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-        <h1 className="text-3xl font-bold">Your Discord Servers</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold">Your Discord Servers</h1>
+          {isRefreshing ? (
+            <RefreshCw className="h-5 w-5 animate-spin text-[#5865F2]" />
+          ) : (
+            <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-8 w-8">
+              <RefreshCw className="h-5 w-5 text-[#5865F2]" />
+            </Button>
+          )}
+        </div>
         <a href={getAddServerUrl()} className="inline-flex items-center">
           <Button className="gap-2 py-6 px-4 bg-[#5865F2] hover:bg-[#4752c4] text-white">
             <PlusCircle className="h-5 w-5" />
@@ -182,16 +265,22 @@ export default function ServerSelector({ discordClientId = "" }: ServerSelectorP
       </div>
 
       {/* No servers message */}
-      {sortedServers.length === 0 && (
+      {sortedServers.length === 0 && !loading && !error && (
         <div className="text-center p-8 border rounded-lg bg-background">
           <ServerCrash className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-xl font-semibold mb-2">No Servers Found</h3>
           <p className="text-muted-foreground mb-4">
             No Discord servers found where you have administrator permissions.
           </p>
-          <Button asChild size="lg" className="bg-[#5865F2] hover:bg-[#4752c4]">
-            <a href={getAddServerUrl()}>Add Bot to a Server</a>
-          </Button>
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
+            <Button onClick={handleRefresh} className="bg-[#5865F2] hover:bg-[#4752c4]">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button asChild size="lg" className="bg-[#5865F2] hover:bg-[#4752c4]">
+              <a href={getAddServerUrl()}>Add Bot to a Server</a>
+            </Button>
+          </div>
         </div>
       )}
 

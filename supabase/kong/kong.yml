@@ -1,0 +1,59 @@
+_format_version: "2.1"
+
+services:
+  - name: supabase-auth
+    url: http://auth:9999
+    routes:
+      - name: auth-route
+        paths:
+          - /auth/v1
+    plugins:
+      - name: cors
+        config:
+          origins:
+            - '*'
+          methods:
+            - GET
+            - POST
+            - PUT
+            - PATCH
+            - DELETE
+            - OPTIONS
+          headers:
+            - Authorization
+            - Content-Type
+            - Apikey
+            - X-Client-Info
+          exposed_headers:
+            - Content-Range
+          credentials: true
+          max_age: 3600
+
+  - name: supabase-rest
+    url: http://rest:3000
+    routes:
+      - name: rest-route
+        paths:
+          - /rest/v1
+    plugins:
+      - name: cors
+        config:
+          origins:
+            - '*'
+          methods:
+            - GET
+            - POST
+            - PUT
+            - PATCH
+            - DELETE
+            - OPTIONS
+          headers:
+            - Authorization
+            - Content-Type
+            - Apikey
+            - X-Client-Info
+            - Prefer
+          exposed_headers:
+            - Content-Range
+          credentials: true
+          max_age: 3600 

@@ -33,12 +33,32 @@ export const GET: APIRoute = async ({ cookies, request }) => {
   console.log("📢 [api/servers/list] Fetching user's server list");
 
   try {
+    // Create Supabase instance
+    console.log("📢 [api/servers/list] Creating Supabase instance");
     const supabase = createSupabaseServerInstance({ cookies, headers: request.headers });
 
     // Use Supabase auth to get the Discord access token
+    console.log("📢 [api/servers/list] Getting user session");
     const {
       data: { session },
+      error: sessionError,
     } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      console.error("📢 [api/servers/list] Session error:", sessionError);
+      return new Response(
+        JSON.stringify({
+          error: { message: "Authentication error: " + sessionError.message },
+        }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("📢 [api/servers/list] Session obtained:", {
+      hasSession: !!session,
+      hasProviderToken: !!session?.provider_token,
+      provider: session?.provider_token ? "available" : "missing",
+    });
 
     if (!session?.provider_token) {
       console.error("📢 [api/servers/list] No provider token available");
@@ -51,14 +71,26 @@ export const GET: APIRoute = async ({ cookies, request }) => {
     }
 
     // Get user's Discord guilds using the OAuth token
+    console.log("📢 [api/servers/list] Fetching Discord guilds with token");
     const discordResponse = await fetch("https://discord.com/api/v10/users/@me/guilds", {
       headers: {
         Authorization: `Bearer ${session.provider_token}`,
       },
     });
 
+    console.log("📢 [api/servers/list] Discord API response status:", discordResponse.status);
+
     if (!discordResponse.ok) {
       console.error(`📢 [api/servers/list] Discord API error: ${discordResponse.status} ${discordResponse.statusText}`);
+
+      // Log response body for debugging
+      try {
+        const errorBody = await discordResponse.text();
+        console.error("📢 [api/servers/list] Discord API error body:", errorBody);
+      } catch (e) {
+        console.error("📢 [api/servers/list] Couldn't read error body:", e);
+      }
+
       if (discordResponse.status === 401) {
         return new Response(
           JSON.stringify({
@@ -76,21 +108,30 @@ export const GET: APIRoute = async ({ cookies, request }) => {
     }
 
     // Parse the response as guild array
-    const userGuilds = (await discordResponse.json()) as DiscordGuild[];
+    const responseText = await discordResponse.text();
+    console.log("📢 [api/servers/list] Discord API response body:", responseText);
+
+    const userGuilds = JSON.parse(responseText) as DiscordGuild[];
     console.log(`📢 [api/servers/list] User has ${userGuilds.length} Discord servers`);
 
     // Get admin guilds (servers user has ADMINISTRATOR permission)
     const adminGuilds = userGuilds.filter((guild) => {
-      // Parse permission string as bigint
-      const permissions = BigInt(guild.permissions);
+      try {
+        // Parse permission string as bigint
+        const permissions = BigInt(guild.permissions);
 
-      // Check if the user has the ADMINISTRATOR permission
-      return (permissions & ADMIN_PERMISSION) === ADMIN_PERMISSION;
+        // Check if the user has the ADMINISTRATOR permission
+        return (permissions & ADMIN_PERMISSION) === ADMIN_PERMISSION;
+      } catch (err) {
+        console.error(`📢 [api/servers/list] Error parsing permissions for server ${guild.id}:`, err);
+        return false;
+      }
     });
 
     console.log(`📢 [api/servers/list] User has admin access to ${adminGuilds.length} servers`);
 
     // Get bot servers from the database
+    console.log("📢 [api/servers/list] Fetching bot servers from database");
     const { data: botServers, error } = await supabase.from("servers").select("id, name, icon_url, active");
 
     if (error) {
@@ -105,6 +146,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
 
     // Log active statuses for debugging
     console.log("📢 [api/servers/list] Bot servers active status:");
+    console.log("📢 [api/servers/list] Total bot servers found:", botServers.length);
     botServers.forEach((server) => {
       console.log(`Server ${server.name} (${server.id}): active=${server.active}`);
     });
@@ -153,6 +195,11 @@ export const GET: APIRoute = async ({ cookies, request }) => {
     });
   } catch (error) {
     console.error("📢 [api/servers/list] Unexpected error:", error);
+    // Log the full error stack trace for debugging
+    if (error instanceof Error) {
+      console.error("📢 [api/servers/list] Error stack:", error.stack);
+    }
+
     return new Response(
       JSON.stringify({
         error: { message: "An unexpected error occurred" },

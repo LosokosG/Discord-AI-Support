@@ -69,7 +69,7 @@ const getAddBotUrl = (serverId: string, serverName: string, serverIcon: string |
   // Standard Discord bot add URL with server pre-selected and our callback
   const url =
     `https://discord.com/api/oauth2/authorize` +
-    `?client_id=${import.meta.env.PUBLIC_DISCORD_CLIENT_ID}` +
+    `?client_id=${import.meta.env.PUBLIC_DISCORD_CLIENT_ID || import.meta.env.DISCORD_CLIENT_ID}` +
     `&permissions=8` +
     `&scope=bot%20applications.commands` +
     `&guild_id=${serverId}` +

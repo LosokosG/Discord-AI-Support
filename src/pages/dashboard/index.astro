@@ -20,7 +20,13 @@ if (!user) {
 }
 
 // Get env variables to pass to client components
-const discordClientId = import.meta.env.DISCORD_CLIENT_ID;
+const discordClientId = import.meta.env.PUBLIC_DISCORD_CLIENT_ID || "";
+
+// Log environment variables for debugging
+console.log("📢 [dashboard/index] Environment variables check:", {
+  PUBLIC_DISCORD_CLIENT_ID: !!import.meta.env.PUBLIC_DISCORD_CLIENT_ID,
+  DISCORD_CLIENT_ID: !!import.meta.env.DISCORD_CLIENT_ID,
+});
 
 console.log("📢 [dashboard/index] User details:", {
   email: user.email,
